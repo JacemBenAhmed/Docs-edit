@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Gradient background -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#667eea" />
+      <stop offset="100%" stop-color="#764ba2" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Document shape -->
+  <rect x="40" y="30" width="120" height="140" rx="10" ry="10" fill="white" stroke="url(#gradient)" stroke-width="4" />
+  
+  <!-- Document lines -->
+  <line x1="60" y1="60" x2="140" y2="60" stroke="#667eea" stroke-width="3" />
+  <line x1="60" y1="80" x2="140" y2="80" stroke="#667eea" stroke-width="3" />
+  <line x1="60" y1="100" x2="120" y2="100" stroke="#667eea" stroke-width="3" />
+  
+  <!-- Edit pen -->
+  <path d="M140,120 L160,100 L170,110 L150,130 Z" fill="url(#gradient)" />
+  <line x1="150" y1="130" x2="140" y2="120" stroke="#764ba2" stroke-width="2" />
+  
+  <!-- Pen tip -->
+  <circle cx="170" cy="110" r="3" fill="#fbbf24" />
+</svg>
