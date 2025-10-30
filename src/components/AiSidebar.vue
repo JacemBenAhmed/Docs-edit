@@ -1,10 +1,16 @@
 <template>
-  <div class="ai-sidebar" :class="{ 'collapsed': isCollapsed }">
+  <div class="ai-sidebar" :class="{ 'collapsed': isCollapsed }" @click="isCollapsed && toggleSidebar()">
     <div class="sidebar-header">
-      <h3 v-if="!isCollapsed">AI Assistant</h3>
-      <button class="toggle-btn" @click="toggleSidebar">
-        <span v-if="isCollapsed">›</span>
-        <span v-else>‹</span>
+      <div class="header-content">
+        <h3>AI Assistant</h3>
+      </div>
+      <button class="toggle-btn" @click.stop="toggleSidebar" :title="isCollapsed ? 'Expand' : 'Collapse'">
+        <svg v-if="isCollapsed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
     </div>
     
@@ -49,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, nextTick, watch } from 'vue';
 
 const isCollapsed = ref(false);
 const userInput = ref('');
@@ -83,6 +89,9 @@ function sendMessage() {
     time: formatTime(new Date())
   });
   
+  userInput.value = '';
+  scrollToBottom();
+  
   // Simulate AI response
   setTimeout(() => {
     messages.push({
@@ -90,9 +99,8 @@ function sendMessage() {
       sender: 'ai',
       time: formatTime(new Date())
     });
+    scrollToBottom();
   }, 1000);
-  
-  userInput.value = '';
 }
 
 function usesuggestion(suggestion) {
@@ -103,18 +111,32 @@ function usesuggestion(suggestion) {
 function formatTime(date) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+function scrollToBottom() {
+  nextTick(() => {
+    const container = document.querySelector('.message-container');
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  });
+}
+
+// Auto-scroll when messages change
+watch(() => messages.length, () => {
+  scrollToBottom();
+});
 </script>
 
 <style scoped>
 .ai-sidebar {
   position: relative;
   width: 100%;
-  height: calc(100vh - 3rem);
-  min-height: 600px;
+  max-height: calc(100vh - 48px);
+  height: fit-content;
   background: linear-gradient(to bottom, #ffffff, #f8fafc);
   border: 2px solid #e0e7ff;
   border-radius: 16px;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 24px rgba(66, 133, 244, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -122,14 +144,22 @@ function formatTime(date) {
 }
 
 .ai-sidebar.collapsed {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 180px;
+  height: 64px;
+  border-radius: 32px;
   position: fixed;
   right: 2rem;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 2rem;
+  transform: translateY(0);
   min-height: unset;
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.25), 0 3px 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.ai-sidebar.collapsed:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 32px rgba(66, 133, 244, 0.4), 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar-header {
@@ -142,14 +172,26 @@ function formatTime(date) {
   color: white;
   min-height: 64px;
   box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ai-sidebar.collapsed .sidebar-header {
   border-bottom: none;
-  padding: 0;
-  min-height: 56px;
-  justify-content: center;
-  border-radius: 50%;
+  padding: 12px 20px;
+  min-height: 64px;
+  justify-content: space-between;
+  border-radius: 32px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.3s ease;
+}
+
+.ai-sidebar.collapsed .header-content {
+  opacity: 1;
 }
 
 .sidebar-header h3 {
@@ -157,6 +199,7 @@ function formatTime(date) {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .toggle-btn {
@@ -166,13 +209,14 @@ function formatTime(date) {
   color: white;
   font-size: 24px;
   cursor: pointer;
-  padding: 0 5px;
+  padding: 0;
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
 
 .toggle-btn:hover {
@@ -185,6 +229,13 @@ function formatTime(date) {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.ai-sidebar.collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .ai-profile {
@@ -225,7 +276,9 @@ function formatTime(date) {
   flex-direction: column;
   gap: 12px;
   background: linear-gradient(to bottom, #fafbff, #ffffff);
-  min-height: 400px;
+  max-height: calc(100vh - 400px);
+  min-height: 300px;
+  scroll-behavior: smooth;
 }
 
 .message-container::-webkit-scrollbar {

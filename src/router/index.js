@@ -5,7 +5,6 @@ import UploadView from '../views/UploadView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import EditView from '../views/EditView.vue'
 import DashboardView from '../views/DashboardView.vue'
-import PdfEditorView from '../views/PdfEditorView.vue'
 import PdfEditor from '../components/PdfEditor.vue'
 
 const routes = [
@@ -54,12 +53,7 @@ const routes = [
     name: 'not-found',
     redirect: '/'
   },
-  {
-    path: '/document-view',
-    name: 'document-view',
-    component: () => import('../components/PdfViewer.vue')
-  
-  },
+ 
 
 ]
 

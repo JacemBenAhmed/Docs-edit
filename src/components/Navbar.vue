@@ -6,8 +6,8 @@
           <v-img src="../assets/logo.svg" alt="Docs Edit Logo" />
         </v-avatar>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold brand-title gradient-text">Docs Edit</span>
-          <span class="text-caption brand-subtitle">Document Workspace</span>
+          <span class="text-h6 font-weight-bold brand-title gradient-text">Edity</span>
+          <span class="text-caption brand-subtitle">Documents Edit</span>
         </div>
       </div>
     </template>

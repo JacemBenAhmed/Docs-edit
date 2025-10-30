@@ -14,8 +14,8 @@
                  style="width: 210mm; box-shadow: 0 10px 40px 0 rgba(60,60,90,0.12), 0 4px 20px 0 rgba(36,31,99,0.10); border:2px solid #e8f0fe; padding: 48px 60px; position: relative;">
               <EditorContent
                 :editor="editor"
-                class="prose prose-lg max-w-none w-full outline-none text-[18px] px-0 py-0"
-                style="font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', serif; letter-spacing: .005em; line-height: 1.7;"
+                class="prose prose-lg max-w-none w-full outline-none px-0 py-0"
+                style="letter-spacing: .005em; line-height: 1.7;"
               />
             </div>
           </div>
@@ -37,11 +37,63 @@ import { TextStyle } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import { Underline } from '@tiptap/extension-underline'
 import { Extension } from '@tiptap/core'
+import TextAlign from '@tiptap/extension-text-align'
+import Link from '@tiptap/extension-link'
+import FontFamily from '@tiptap/extension-font-family'
 import MenuBar from './MenuBar.vue'
 import AiSidebar from './AiSidebar.vue'
 
 const approxLines = 46  // 2 pages worth of lines (23 per page)
 const emptyParagraphs = Array.from({ length: approxLines }, () => '<p>&nbsp;</p>').join('')
+
+// Custom FontSize extension
+const FontSize = Extension.create({
+  name: 'fontSize',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize || null,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+
+  addCommands() {
+    return {
+      setFontSize: fontSize => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize })
+          .run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize: null })
+          .removeEmptyTextStyle()
+          .run()
+      },
+    }
+  },
+})
 
 // Custom extension to maintain minimum lines
 const MinimumLines = Extension.create({
@@ -103,7 +155,11 @@ onMounted(() => {
       }),
       Underline,
       TextStyle,
+      FontFamily,
+      FontSize,
       Color,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true })
       
     ],
     content: emptyParagraphs,
@@ -184,6 +240,9 @@ onBeforeUnmount(() => {
   line-height: 22px;
   cursor: text;
   position: relative;
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 18px;
+  color: #202124;
 }
 
 .prose :deep(p:empty::before) {
@@ -205,6 +264,29 @@ onBeforeUnmount(() => {
 ::selection {
   background: rgba(66, 133, 244, 0.25);
   color: inherit;
+}
+
+/* Ensure inline styles are applied */
+.prose :deep(span[style]) {
+  display: inline;
+}
+
+.prose :deep(span[style*="color"]) {
+  display: inline;
+}
+
+.prose :deep(span[style*="background-color"]) {
+  display: inline;
+  padding: 2px 0;
+}
+
+/* Default text color for all editor content */
+.prose :deep(*) {
+  color: inherit;
+}
+
+.prose {
+  color: #202124;
 }
 
 /* Multi-page styling */
