@@ -393,12 +393,18 @@ function addTable() {
   if (!editor.value) return
   
   try {
+    // Initialize empty cell data
+    const cellData = Array.from({ length: tableRows.value }, () => 
+      Array(tableColumns.value).fill('')
+    )
+    
     // Insert custom table node
     editor.value.chain().focus().insertContent({
       type: 'tableHTML',
       attrs: {
         rows: tableRows.value,
         cols: tableColumns.value,
+        cellData: cellData
       }
     }).run()
     

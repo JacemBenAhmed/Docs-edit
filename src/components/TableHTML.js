@@ -19,8 +19,45 @@ export const TableHTML = Node.create({
     ]
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes(HTMLAttributes, { class: 'custom-table' })]
+  renderHTML({ node, HTMLAttributes }) {
+    const rows = node.attrs.rows
+    const cols = node.attrs.cols
+    const cellData = node.attrs.cellData || []
+    
+    const tableRows = []
+    
+    for (let i = 0; i < rows; i++) {
+      const cells = []
+      for (let j = 0; j < cols; j++) {
+        const cellContent = cellData[i] && cellData[i][j] ? cellData[i][j] : ''
+        cells.push([
+          'div',
+          {
+            style: `flex: 1; padding: 10px; min-width: 120px; min-height: 40px; border-right: ${j < cols - 1 ? '1px solid #000000' : 'none'}; box-sizing: border-box;`
+          },
+          cellContent
+        ])
+      }
+      
+      tableRows.push([
+        'div',
+        {
+          style: `display: flex; border-bottom: ${i < rows - 1 ? '1px solid #000000' : 'none'};`
+        },
+        ...cells
+      ])
+    }
+    
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        class: 'custom-table',
+        style: 'border: 2px solid #000000; width: calc(100% - 40px); margin: 16px 20px; padding: 0; background: #ffffff;',
+        'data-rows': rows,
+        'data-cols': cols
+      }),
+      ...tableRows
+    ]
   },
 
   addAttributes() {
@@ -42,6 +79,21 @@ export const TableHTML = Node.create({
             'data-cols': attributes.cols
           }
         }
+      },
+      cellData: {
+        default: null,
+        parseHTML: element => {
+          const data = element.getAttribute('data-cell-content')
+          return data ? JSON.parse(data) : null
+        },
+        renderHTML: attributes => {
+          if (attributes.cellData) {
+            return {
+              'data-cell-content': JSON.stringify(attributes.cellData)
+            }
+          }
+          return {}
+        }
       }
     }
   },
@@ -49,17 +101,36 @@ export const TableHTML = Node.create({
   addNodeView() {
     return ({ node, editor, getPos }) => {
       const wrapper = document.createElement('div')
-      wrapper.style.cssText = 'position: relative; margin: 16px 0;'
+      wrapper.style.cssText = 'position: relative; margin: 16px 20px; padding: 0 20px;'
       
       const dom = document.createElement('div')
       dom.className = 'custom-table'
-      dom.style.cssText = 'border: 2px solid #000000; width: 100%; background: #ffffff; user-select: text;'
+      dom.style.cssText = 'border: 2px solid #000000; width: calc(100% - 40px); background: #ffffff; user-select: text;'
       
       const rows = node.attrs.rows
       const cols = node.attrs.cols
+      const cellData = node.attrs.cellData || Array.from({ length: rows }, () => Array(cols).fill(''))
       
-      // Create table structure
+      const cellElements = []
+      
+      const updateCellData = () => {
+        const newCellData = []
+        for (let i = 0; i < rows; i++) {
+          newCellData[i] = []
+          for (let j = 0; j < cols; j++) {
+            const cellElement = cellElements[i][j]
+            newCellData[i][j] = cellElement.textContent || ''
+          }
+        }
+        
+        if (typeof getPos === 'function') {
+          const pos = getPos()
+          editor.commands.updateAttributes('tableHTML', { cellData: newCellData })
+        }
+      }
+      
       for (let i = 0; i < rows; i++) {
+        cellElements[i] = []
         const row = document.createElement('div')
         row.style.cssText = 'display: flex;'
         if (i < rows - 1) {
@@ -78,7 +149,10 @@ export const TableHTML = Node.create({
           cell.contentEditable = 'true'
           cell.spellcheck = false
           
-          // Prevent editor selection when typing in cells
+          cell.textContent = cellData[i] && cellData[i][j] ? cellData[i][j] : ''
+          
+          cellElements[i][j] = cell
+          
           cell.addEventListener('focus', function(e) {
             this.style.backgroundColor = '#f0f6ff'
             e.stopPropagation()
@@ -86,16 +160,22 @@ export const TableHTML = Node.create({
           
           cell.addEventListener('blur', function() {
             this.style.backgroundColor = '#ffffff'
+            updateCellData()
           })
           
-          // Prevent table deletion when clicking cells
           cell.addEventListener('mousedown', function(e) {
             e.stopPropagation()
           })
           
-          // Prevent keydown from propagating to editor
           cell.addEventListener('keydown', function(e) {
             e.stopPropagation()
+          })
+          
+          cell.addEventListener('input', function() {
+            clearTimeout(cell.updateTimeout)
+            cell.updateTimeout = setTimeout(() => {
+              updateCellData()
+            }, 500)
           })
           
           row.appendChild(cell)
@@ -104,11 +184,9 @@ export const TableHTML = Node.create({
         dom.appendChild(row)
       }
       
-      // Context menu functionality
       dom.addEventListener('contextmenu', function(e) {
         e.preventDefault()
         
-        // Remove any existing context menus
         document.querySelectorAll('.table-context-menu').forEach(menu => menu.remove())
         
         const menu = document.createElement('div')
