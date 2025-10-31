@@ -129,7 +129,6 @@ watch(() => messages.length, () => {
 
 <style scoped>
 .ai-sidebar {
-  position: relative;
   width: 100%;
   max-height: calc(100vh - 48px);
   height: fit-content;
@@ -141,6 +140,7 @@ watch(() => messages.length, () => {
   flex-direction: column;
   box-shadow: 0 8px 24px rgba(66, 133, 244, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .ai-sidebar.collapsed {
@@ -231,6 +231,7 @@ watch(() => messages.length, () => {
   overflow: hidden;
   opacity: 1;
   transition: opacity 0.3s ease;
+  overscroll-behavior: contain;
 }
 
 .ai-sidebar.collapsed .sidebar-content {
@@ -279,6 +280,7 @@ watch(() => messages.length, () => {
   max-height: calc(100vh - 400px);
   min-height: 300px;
   scroll-behavior: smooth;
+  overscroll-behavior: contain;
 }
 
 .message-container::-webkit-scrollbar {

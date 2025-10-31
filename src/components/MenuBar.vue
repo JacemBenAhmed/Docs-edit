@@ -1,7 +1,109 @@
 <template>
-  <div class="menubar-gdocs">
-    <!-- Undo/Redo -->
-    <div class="toolbar-group">
+  <div class="menubar-container">
+    <!-- Top Row: File and Insert Menus -->
+    <div class="menu-row">
+      <div class="menu-group">
+        <!-- File Menu -->
+        <div class="dropdown-menu">
+          <button class="menu-btn" @click="toggleFileMenu" :disabled="!editor">
+            File
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div v-if="showFileMenu" class="dropdown-content" @mouseleave="showFileMenu = false">
+            <button @click="exportToPDF" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <path d="M14 2v6h6"/>
+              </svg>
+              Download as PDF
+            </button>
+            <button @click="exportToWord" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <path d="M14 2v6h6"/>
+              </svg>
+              Download as Word
+            </button>
+            <div class="dropdown-divider"></div>
+            <button @click="printDocument" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+              </svg>
+              Print
+            </button>
+          </div>
+        </div>
+
+        <!-- Insert Menu -->
+        <div class="dropdown-menu">
+          <button class="menu-btn" @click="toggleInsertMenu" :disabled="!editor">
+            Insert
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div v-if="showInsertMenu" class="dropdown-content" @mouseleave="showInsertMenu = false">
+            <input 
+              ref="imageInput" 
+              type="file" 
+              accept="image/*" 
+              @change="handleImageUpload" 
+              style="display: none;"
+            />
+            <button @click="triggerImageUpload" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              Image
+            </button>
+            <button @click="insertTable" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="3" y1="15" x2="21" y2="15"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <line x1="15" y1="3" x2="15" y2="21"/>
+              </svg>
+              Table
+            </button>
+            <button @click="insertLink" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              Link
+            </button>
+            <button @click="insertTextBox" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 6H3"/>
+                <path d="M21 12H8"/>
+                <path d="M21 18H8"/>
+                <path d="M3 12v6"/>
+              </svg>
+              Text Box
+            </button>
+            <div class="dropdown-divider"></div>
+            <button @click="insertDrawing" class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19"/>
+                <path d="M9 18h1.3M3 22l3-7 6 6-7 3z"/>
+              </svg>
+              Drawing
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Formatting Tools -->
+    <div class="menubar-gdocs">
+      <div class="toolbar-group">
       <button class="gd-icon-btn" title="Undo" @click="performUndo" :disabled="!editor">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 7v6h6"/>
@@ -18,7 +120,6 @@
 
     <div class="toolbar-divider"></div>
 
-    <!-- Font Family -->
     <select
       v-model="fontFamily"
       @change="setFontFamily"
@@ -34,7 +135,6 @@
       <option value="Verdana">Verdana</option>
     </select>
 
-    <!-- Font Size -->
     <select
       v-model="fontSize"
       @change="setFontSize"
@@ -46,7 +146,6 @@
 
     <div class="toolbar-divider"></div>
 
-    <!-- Formatting Buttons -->
     <div class="toolbar-group">
       <button
         v-for="btn in formattingButtons"
@@ -62,7 +161,7 @@
 
     <div class="toolbar-divider"></div>
 
-    <!-- Text Color -->
+    
     <div class="toolbar-group">
       <div class="color-picker-wrapper">
         <button 
@@ -116,52 +215,64 @@
         <span v-html="btn.icon"></span>
       </button>
     </div>
-
-    <div class="toolbar-divider"></div>
-
-    <!-- Insert -->
-    <div class="toolbar-group">
-      <button class="gd-icon-btn" title="Insert link" @click="insertLink" :disabled="!editor">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-        </svg>
-      </button>
-      <button class="gd-icon-btn" title="Insert image" @click="insertImage" :disabled="!editor">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
-        </svg>
-      </button>
-      <button class="gd-icon-btn" title="Insert text box" @click="insertTextBox" :disabled="!editor">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 6H3"/>
-          <path d="M21 12H8"/>
-          <path d="M21 18H8"/>
-          <path d="M3 12v6"/>
-        </svg>
-      </button>
     </div>
 
-    <div class="toolbar-divider"></div>
-
-    <!-- Export PDF -->
-    <button class="export-pdf-btn" title="Export as PDF" @click="exportToPDF" :disabled="!editor">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <path d="M14 2v6h6"/>
-        <path d="M12 18v-6"/>
-        <path d="m9 15 3 3 3-3"/>
-      </svg>
-      <span class="export-text">PDF</span>
-    </button>
+    <!-- Table Modal -->
+    <div v-if="showTableModal" class="modal-overlay" @click="closeTableModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Insert Table</h3>
+          <button class="modal-close" @click="closeTableModal">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="input-group">
+            <label>Rows:</label>
+            <input 
+              type="number" 
+              v-model.number="tableRows" 
+              min="1" 
+              max="20" 
+              class="table-input"
+            />
+          </div>
+          
+          <div class="input-group">
+            <label>Columns:</label>
+            <input 
+              type="number" 
+              v-model.number="tableColumns" 
+              min="1" 
+              max="10" 
+              class="table-input"
+            />
+          </div>
+          
+          <div class="table-preview-container">
+            <p class="preview-label">Preview:</p>
+            <div class="table-preview">
+              <table class="preview-table">
+                <tr v-for="row in tableRows" :key="row">
+                  <td v-for="col in tableColumns" :key="col"></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="modal-btn cancel-btn" @click="closeTableModal">Cancel</button>
+          <button class="modal-btn add-btn" @click="addTable">Add Table</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useEditor } from '@tiptap/vue-3'
+import html2pdf from 'html2pdf.js'
 
 const props = defineProps({ editor: Object })
 const editor = computed(() => props.editor)
@@ -172,10 +283,15 @@ const textColor = ref('#000000')
 const highlightColor = ref('#ffff00')
 const showTextColorPicker = ref(false)
 const showHighlightPicker = ref(false)
+const imageInput = ref(null)
+const showFileMenu = ref(false)
+const showInsertMenu = ref(false)
+const showTableModal = ref(false)
+const tableRows = ref(3)
+const tableColumns = ref(3)
 
-const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72, 96]
+const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36,40, 48, 72, 96]
 
-// Watch editor changes
 watch(editor, (ed) => {
   if (!ed) return
   const attrs = ed.getAttributes('textStyle')
@@ -185,16 +301,13 @@ watch(editor, (ed) => {
   highlightColor.value = attrs.backgroundColor || '#ffff00'
 }, { immediate: true })
 
-// Actions
 function setFontFamily() {
   if (!editor.value) return
-  // Use the setFontFamily command from FontFamily extension
   editor.value.chain().focus().setFontFamily(fontFamily.value).run()
 }
 
 function setFontSize() {
   if (!editor.value) return
-  // Use the setFontSize command from custom FontSize extension
   editor.value.chain().focus().setFontSize(fontSize.value + 'px').run()
 }
 
@@ -229,6 +342,16 @@ function setHighlightColor() {
   }
   showHighlightPicker.value = false
 }
+function toggleFileMenu() {
+  showFileMenu.value = !showFileMenu.value
+  showInsertMenu.value = false
+}
+
+function toggleInsertMenu() {
+  showInsertMenu.value = !showInsertMenu.value
+  showFileMenu.value = false
+}
+
 function performUndo() {
   editor.value?.chain().focus().undo().run()
 }
@@ -237,99 +360,200 @@ function performRedo() {
   editor.value?.chain().focus().redo().run()
 }
 
+function printDocument() {
+  showFileMenu.value = false
+  window.print()
+}
+
 function insertLink() {
+  showInsertMenu.value = false
   const url = prompt('Enter URL:')
   if (url) {
     editor.value?.chain().focus().setLink({ href: url }).run()
   }
 }
 
-function insertImage() {
-  const url = prompt('Enter image URL:')
-  if (url) {
-    editor.value?.chain().focus().setImage({ src: url }).run()
+function triggerImageUpload() {
+  showInsertMenu.value = false
+  imageInput.value?.click()
+}
+
+function insertTable() {
+  showInsertMenu.value = false
+  showTableModal.value = true
+}
+
+function closeTableModal() {
+  showTableModal.value = false
+  tableRows.value = 3
+  tableColumns.value = 3
+}
+
+function addTable() {
+  if (!editor.value) return
+  
+  try {
+    // Insert custom table node
+    editor.value.chain().focus().insertContent({
+      type: 'tableHTML',
+      attrs: {
+        rows: tableRows.value,
+        cols: tableColumns.value,
+      }
+    }).run()
+    
+    closeTableModal()
+  } catch (error) {
+    console.error('Error inserting table:', error)
+    alert('Error inserting table. Please refresh the page and try again.')
   }
 }
 
+function insertDrawing() {
+  showInsertMenu.value = false
+  alert('Drawing feature coming soon! You can insert images for now.')
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file || !editor.value) return
+  
+  // Check if file is an image
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file')
+    return
+  }
+  
+  // Check file size (limit to 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Image size should be less than 5MB')
+    return
+  }
+  
+  // Convert image to base64 for embedding
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const base64 = e.target.result
+    editor.value.chain().focus().setImage({ 
+      src: base64,
+      alt: file.name,
+      title: file.name
+    }).run()
+    
+    // Show success message
+    console.log('Image inserted successfully! Drag to move, Shift+Drag to resize.')
+  }
+  reader.onerror = () => {
+    alert('Error reading image file')
+  }
+  reader.readAsDataURL(file)
+  
+  // Reset input to allow selecting the same file again
+  event.target.value = ''
+}
+
 function insertTextBox() {
-  // Insert a styled div that acts as a text box
+  showInsertMenu.value = false
   editor.value?.chain().focus().insertContent(
     '<div style="border: 2px solid #e5e7eb; padding: 12px; margin: 8px 0; border-radius: 4px; background: #f9fafb;">Text box content</div>'
   ).run()
 }
 
-function exportToPDF() {
+async function exportToPDF() {
+  showFileMenu.value = false
   if (!editor.value) return
   
-  // Get the HTML content from the editor
   const content = editor.value.getHTML()
   
-  // Create a new window for printing
-  const printWindow = window.open('', '_blank', 'width=800,height=600')
+  const wrapper = document.createElement('div')
+  wrapper.innerHTML = content
+  wrapper.style.fontFamily = 'Inter, Arial, sans-serif'
+  wrapper.style.fontSize = '18px'
+  wrapper.style.lineHeight = '1.7'
+  wrapper.style.color = '#202124'
+  wrapper.style.padding = '40px'
+  wrapper.style.background = 'white'
+  wrapper.style.width = '210mm'
+  wrapper.style.minHeight = '297mm'
   
-  const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Document</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Arial&family=Georgia&family=Courier+New&display=swap" rel="stylesheet">
-  <style>
-    @page {
-      size: A4;
-      margin: 0.75in;
+  const opt = {
+    margin: [15, 15, 15, 15],
+    filename: 'document.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      backgroundColor: '#ffffff'
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait'
     }
-    
-    body {
-      font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-      font-size: 18px;
-      line-height: 1.7;
-      color: #202124;
-      padding: 0;
-      margin: 0;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    @media print {
-      body {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-    }
-    
-    p {
-      margin: 0.5em 0;
-      min-height: 1.2em;
-    }
-    
-    span[style] {
-      display: inline;
-    }
-    
-    span[style*="color"],
-    span[style*="background-color"] {
-      display: inline;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-  </style>
-</head>
-<body>${content}</body>
-</html>`
+  }
   
-  printWindow.document.write(htmlContent)
-  
-  printWindow.document.close()
-  
-  // Wait for content to load, then trigger print dialog
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.print()
-    }, 250)
+  try {
+    await html2pdf().set(opt).from(wrapper).save()
+  } catch (error) {
+    console.error('PDF export error:', error)
+    alert('Error generating PDF. Please try again.')
   }
 }
 
-// Button Groups
+function exportToWord() {
+  showFileMenu.value = false
+  if (!editor.value) return
+  
+  const content = editor.value.getHTML()
+  
+  const htmlContent = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>Document</title>
+        <style>
+          body {
+            font-family: 'Calibri', 'Inter', Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #000000;
+          }
+          p {
+            margin: 0 0 10pt 0;
+          }
+          img {
+            max-width: 100%;
+            height: auto;
+          }
+          span[style*="color"] {
+            color: inherit;
+          }
+          span[style*="background-color"] {
+            background-color: inherit;
+          }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
+    </html>
+  `
+  
+  const blob = new Blob(['\ufeff', htmlContent], {
+    type: 'application/msword'
+  })
+  
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'document.doc'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 const formattingButtons = [
   { label: 'Bold', icon: boldIcon, action: () => editor.value.chain().focus().toggleBold().run(), isActive: () => editor.value?.isActive?.('bold') },
   { label: 'Italic', icon: italicIcon, action: () => editor.value.chain().focus().toggleItalic().run(), isActive: () => editor.value?.isActive?.('italic') },
@@ -344,7 +568,6 @@ const alignButtons = [
   { label: 'Align Justify', icon: alignJustifyIcon, action: () => editor.value.chain().focus().setTextAlign('justify').run(), isActive: () => editor.value?.isActive?.({ textAlign: 'justify' }) },
 ]
 
-// Icons (SVG)
 const boldIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>`
 const italicIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 4h-9m4 16H5m9-16L9 20"></path></svg>`
 const underlineIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3m-6 15h6"></path></svg>`
@@ -356,27 +579,152 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
 </script>
 
 <style scoped>
-/* Google Docs-style Menu Bar */
+/* Container for both rows */
+.menubar-container {
+  background: #ffffff;
+  border-bottom: 1px solid #e8eaed;
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.05);
+  user-select: none;
+}
+
+/* Top Row - File/Insert Menus */
+.menu-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 2px solid #e8eaed;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+}
+
+/* Bottom Row - Formatting Tools */
 .menubar-gdocs {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 8px 12px;
+  padding: 80px 12px  ;
   background: #ffffff;
-  border-bottom: 1px solid #e8eaed;
-  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.05);
   overflow-x: auto;
-  user-select: none;
 }
 
-/* Toolbar Groups */
+/* Dropdown Menu Styles */
+.menu-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dropdown-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 2px solid #e8eaed;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #202124;
+  font-family: 'Roboto', 'Arial', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+  letter-spacing: 0.3px;
+}
+
+.menu-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #dadce0;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2);
+  transform: translateY(-1px);
+}
+
+.menu-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+  background: #f1f3f4;
+}
+
+.menu-btn:disabled {
+  background: #f5f5f5;
+  color: #80868b;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.menu-btn svg {
+  stroke: #202124;
+}
+
+.dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 220px;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 6px 0;
+  animation: dropdownFadeIn 150ms ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #3c4043;
+  font-family: 'Roboto', 'Arial', sans-serif;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-item:hover {
+  background-color: #f1f3f4;
+}
+
+.dropdown-item svg {
+  flex-shrink: 0;
+  color: #5f6368;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #e8eaed;
+  margin: 6px 0;
+}
+
 .toolbar-group {
   display: flex;
   align-items: center;
   gap: 2px;
 }
 
-/* Toolbar Divider */
 .toolbar-divider {
   width: 1px;
   height: 24px;
@@ -454,7 +802,7 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
   border: 1px solid #dadce0;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 9999;
+  z-index: 10000;
   min-width: 140px;
 }
 
@@ -542,49 +890,192 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
   display: block;
 }
 
-/* Export PDF Button */
-.export-pdf-btn {
-  display: inline-flex;
+/* Table Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+  z-index: 10002;
+  backdrop-filter: blur(4px);
 }
 
-.export-pdf-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1557b0 0%, #1a73e8 100%);
-  box-shadow: 0 2px 4px 0 rgba(26, 115, 232, 0.4);
+.modal-content {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: auto;
+  animation: modalSlideIn 250ms ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 2px solid #e8eaed;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #202124;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #5f6368;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 150ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: #f1f3f4;
+  color: #202124;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c4043;
+  margin-bottom: 8px;
+}
+
+.table-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e8eaed;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  transition: all 200ms ease;
+}
+
+.table-input:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+.table-preview-container {
+  margin-top: 24px;
+}
+
+.preview-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c4043;
+  margin-bottom: 12px;
+}
+
+.table-preview {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e8eaed;
+  overflow: auto;
+  max-height: 300px;
+}
+
+.preview-table {
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px solid #000000;
+  background: #ffffff;
+}
+
+.preview-table td {
+  border: 1px solid #000000;
+  padding: 10px;
+  min-width: 60px;
+  min-height: 40px;
+  text-align: center;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 2px solid #e8eaed;
+  background: #f8f9fa;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  letter-spacing: 0.3px;
+}
+
+.cancel-btn {
+  background: #ffffff;
+  color: #5f6368;
+  border: 2px solid #dadce0;
+}
+
+.cancel-btn:hover {
+  background: #f1f3f4;
+  border-color: #bdc1c6;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, #4285f4 0%, #5a9ff5 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+}
+
+.add-btn:hover {
+  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.4);
   transform: translateY(-1px);
 }
 
-.export-pdf-btn:active:not(:disabled) {
+.add-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
-}
-
-.export-pdf-btn:disabled {
-  background: #e8eaed;
-  color: #80868b;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.export-pdf-btn svg {
-  display: block;
-}
-
-.export-text {
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
 }
 </style>

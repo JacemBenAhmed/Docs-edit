@@ -2,13 +2,10 @@
   <div class="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-6">
     <div class="mx-auto w-full px-6" style="max-width: 1800px;">
       <div style="display: grid; grid-template-columns: 70% 30%; gap: 24px; align-items: start;">
-        <!-- Main Editing Workspace (70% width) -->
         <div style="width: 100%;">
-          <!-- Sticky/affix Toolbar -->
           <div class="sticky top-0 z-40 mb-3 mx-auto" style="width: 210mm;">
             <MenuBar :editor="editor" class="rounded-xl shadow-2xl border-2 border-blue-100 bg-white/95 backdrop-blur-md transition-all duration-300 hover:shadow-xl"/>
           </div>
-          <!-- Continuous Document with Visual Page Breaks -->
           <div class="pages-container">
             <div class="document shadow-2xl rounded-lg bg-white transition-all duration-300 hover:shadow-3xl mx-auto" 
                  style="width: 210mm; box-shadow: 0 10px 40px 0 rgba(60,60,90,0.12), 0 4px 20px 0 rgba(36,31,99,0.10); border:2px solid #e8f0fe; padding: 48px 60px; position: relative;">
@@ -20,8 +17,7 @@
             </div>
           </div>
         </div>
-        <!-- AI Assistant Sidebar on Right (30% width) -->
-        <div class="sticky" style="top: 24px; align-self: start;">
+        <div class="sidebar-wrapper">
           <AiSidebar />
         </div>
       </div>
@@ -40,13 +36,14 @@ import { Extension } from '@tiptap/core'
 import TextAlign from '@tiptap/extension-text-align'
 import Link from '@tiptap/extension-link'
 import FontFamily from '@tiptap/extension-font-family'
+import DraggableImage from './DraggableImage.js'
+import TableHTML from './TableHTML.js'
 import MenuBar from './MenuBar.vue'
 import AiSidebar from './AiSidebar.vue'
 
-const approxLines = 46  // 2 pages worth of lines (23 per page)
+const approxLines = 46  
 const emptyParagraphs = Array.from({ length: approxLines }, () => '<p>&nbsp;</p>').join('')
 
-// Custom FontSize extension
 const FontSize = Extension.create({
   name: 'fontSize',
 
@@ -95,7 +92,6 @@ const FontSize = Extension.create({
   },
 })
 
-// Custom extension to maintain minimum lines
 const MinimumLines = Extension.create({
   name: 'minimumLines',
   
@@ -159,7 +155,15 @@ onMounted(() => {
       FontSize,
       Color,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true })
+      Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
+      DraggableImage.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'editor-image',
+        },
+      }),
+      TableHTML
       
     ],
     content: emptyParagraphs,
@@ -168,20 +172,16 @@ onMounted(() => {
         class: 'focus:outline-none',
       },
       handleKeyDown: (view, event) => {
-        // Prevent Ctrl+A + Delete from removing all content
         if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
           return false
         }
         
-        // Prevent deleting all content
         const { state } = view
         const { selection, doc } = state
         
         if (event.key === 'Backspace' || event.key === 'Delete') {
-          // Check if trying to delete everything
           if (selection.from === 0 && selection.to === doc.content.size) {
             event.preventDefault()
-            // Clear content but keep structure (46 lines = 2 pages)
             const tr = state.tr
             tr.deleteRange(0, doc.content.size)
             for (let i = 0; i < 46; i++) {
@@ -195,7 +195,60 @@ onMounted(() => {
       },
     },
   })
+  
+  setupImageResize()
 })
+
+function setupImageResize() {
+  let isResizing = false
+  let currentImage = null
+  let startX, startY, startWidth, startHeight
+  
+  document.addEventListener('mousedown', (e) => {
+    const target = e.target
+    if (target.classList.contains('editor-image') && e.shiftKey) {
+      isResizing = true
+      currentImage = target
+      startX = e.clientX
+      startY = e.clientY
+      startWidth = currentImage.offsetWidth
+      startHeight = currentImage.offsetHeight
+      e.preventDefault()
+    }
+  })
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing || !currentImage) return
+    
+    const width = startWidth + (e.clientX - startX)
+    const height = startHeight + (e.clientY - startY)
+    
+    if (width > 50) {
+      currentImage.style.width = width + 'px'
+      currentImage.style.height = 'auto'
+    }
+  })
+  
+  document.addEventListener('mouseup', () => {
+    if (isResizing && currentImage && editor.value) {
+      const { view } = editor.value
+      const pos = view.posAtDOM(currentImage, 0)
+      const node = view.state.doc.nodeAt(pos)
+      
+      if (node) {
+        const { tr } = view.state
+        tr.setNodeMarkup(pos, null, {
+          ...node.attrs,
+          width: currentImage.style.width,
+        })
+        view.dispatch(tr)
+      }
+    }
+    
+    isResizing = false
+    currentImage = null
+  })
+}
 
 function getHTML() {
   return editor.value?.getHTML() || ''
@@ -208,7 +261,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Custom Scrollbar */
+.sidebar-wrapper {
+  position: sticky;
+  top: 90px;
+  align-self: start;
+  z-index: 30;
+  max-height: calc(100vh - 48px);
+  overscroll-behavior: contain;
+}
+
 :deep(*::-webkit-scrollbar) {
   width: 8px;
   height: 8px;
@@ -401,5 +462,85 @@ onBeforeUnmount(() => {
 
 :deep(.menu-dropdown-item:hover) {
   background-color: #f1f3f4;
+}
+
+/* Image Styles - Draggable and Resizable */
+.prose :deep(.editor-image) {
+  max-width: 100%;
+  height: auto;
+  cursor: grab;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: inline-block;
+  margin: 12px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  user-select: none;
+}
+
+.prose :deep(.editor-image:hover) {
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.35);
+  border-color: #4285f4;
+  transform: translateY(-2px);
+}
+
+.prose :deep(.editor-image:active) {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.prose :deep(.editor-image.ProseMirror-selectednode) {
+  outline: 3px solid #4285f4;
+  outline-offset: 3px;
+  box-shadow: 0 8px 24px rgba(66, 133, 244, 0.5);
+  border-color: #4285f4;
+}
+
+/* Resize indicator when holding Shift */
+.prose :deep(.editor-image):after {
+  content: '⇲ Shift+Drag to resize';
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(66, 133, 244, 0.9);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.prose :deep(.editor-image:hover):after {
+  opacity: 1;
+}
+
+/* Image resize handles */
+.prose :deep(.editor-image-wrapper) {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.prose :deep(.editor-image-wrapper.selected) {
+  outline: 2px solid #4285f4;
+}
+
+.prose :deep(.editor-image-wrapper .resize-handle) {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #4285f4;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  bottom: -5px;
+  right: -5px;
+  z-index: 10;
 }
 </style>
