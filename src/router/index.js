@@ -6,6 +6,11 @@ import ProfileView from '../views/ProfileView.vue'
 import EditView from '../views/EditView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import PdfEditor from '../components/PdfEditor.vue'
+import { Editor } from '@tiptap/vue-3'
+
+const isAuthenticated = () => {
+  return localStorage.getItem('token') !== null && localStorage.getItem('user') !== null
+}
 
 const routes = [
   {
@@ -31,13 +36,21 @@ const routes = [
   {
     path: '/profile',
     name: 'profile',
-    component: ProfileView
+    component: ProfileView,
+    beforeEnter: (to, from, next) => {
+      if (isAuthenticated()) {
+        next(); 
+      } else {
+        next({ path: '/', query: { login: 'true' }});
+      }
+    }
   },
   {
     path: '/dashboard',
     name: 'dashboard',
     component: DashboardView
   },
+  
   {
     path: '/settings',
     name: 'settings',
@@ -53,6 +66,11 @@ const routes = [
     name: 'not-found',
     redirect: '/'
   },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('../views/ProfileView.vue')  
+  }
  
 
 ]

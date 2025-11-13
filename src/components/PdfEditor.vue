@@ -1,26 +1,22 @@
 <template>
   <div class="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-6">
-    <div class="mx-auto w-full px-6" style="max-width: 1800px;">
-      <div style="display: grid; grid-template-columns: 70% 30%; gap: 24px; align-items: start;">
-        <div style="width: 100%;">
-          <div class="sticky top-0 z-40 mb-3 mx-auto" style="width: 210mm;">
-            <MenuBar :editor="editor" class="rounded-xl shadow-2xl border-2 border-blue-100 bg-white/95 backdrop-blur-md transition-all duration-300 hover:shadow-xl"/>
-          </div>
-          <div class="pages-container">
-            <div class="document shadow-2xl rounded-lg bg-white transition-all duration-300 hover:shadow-3xl mx-auto" 
-                 style="width: 210mm; box-shadow: 0 10px 40px 0 rgba(60,60,90,0.12), 0 4px 20px 0 rgba(36,31,99,0.10); border:2px solid #e8f0fe; padding: 48px 60px; position: relative;">
-              <EditorContent
-                :editor="editor"
-                class="prose prose-lg max-w-none w-full outline-none px-0 py-0"
-                style="letter-spacing: .005em; line-height: 1.7;"
-              />
-            </div>
-          </div>
+    <div class="mx-auto w-full px-6 editor-container">
+      <div class="editor-workspace">
+        <div class="sticky top-0 z-40 mb-3 mx-auto" style="width: 210mm;">
+          <MenuBar :editor="editor" class="rounded-xl shadow-2xl border-2 border-blue-100 bg-white/95 backdrop-blur-md transition-all duration-300 hover:shadow-xl"/>
         </div>
-        <div class="sidebar-wrapper">
-          <AiSidebar />
+        <div class="pages-container">
+          <div class="document shadow-2xl rounded-lg bg-white transition-all duration-300 hover:shadow-3xl mx-auto" 
+               style="width: 210mm; box-shadow: 0 10px 40px 0 rgba(60,60,90,0.12), 0 4px 20px 0 rgba(36,31,99,0.10); border:2px solid #e8f0fe; padding: 48px 60px; position: relative;">
+            <EditorContent
+              :editor="editor"
+              class="prose prose-lg max-w-none w-full outline-none px-0 py-0"
+              style="letter-spacing: .005em; line-height: 1.7;"
+            />
+          </div>
         </div>
       </div>
+      <AiSidebar />
     </div>
   </div>
 </template>
@@ -36,8 +32,8 @@ import { Extension } from '@tiptap/core'
 import TextAlign from '@tiptap/extension-text-align'
 import Link from '@tiptap/extension-link'
 import FontFamily from '@tiptap/extension-font-family'
-import DraggableImage from './DraggableImage.js'
-import TableHTML from './TableHTML.js'
+import DraggableImage from '../extensions/DraggableImage.js'
+import TableHTML from '../extensions/TableHTML.js'
 import MenuBar from './MenuBar.vue'
 import AiSidebar from './AiSidebar.vue'
 
@@ -261,13 +257,14 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.sidebar-wrapper {
-  position: sticky;
-  top: 90px;
-  align-self: start;
-  z-index: 30;
-  max-height: calc(100vh - 48px);
-  overscroll-behavior: contain;
+.editor-container {
+  max-width: 1800px;
+  position: relative;
+  padding-bottom: 140px;
+}
+
+.editor-workspace {
+  width: 100%;
 }
 
 :deep(*::-webkit-scrollbar) {

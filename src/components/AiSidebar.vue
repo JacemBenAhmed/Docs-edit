@@ -1,5 +1,9 @@
 <template>
-  <div class="ai-sidebar" :class="{ 'collapsed': isCollapsed }" @click="isCollapsed && toggleSidebar()">
+  <div
+    class="ai-sidebar"
+    :class="{ collapsed: isCollapsed, ready: isReady, expanded: !isCollapsed }"
+    @click="isCollapsed && toggleSidebar()"
+  >
     <div class="sidebar-header">
       <div class="header-content">
         <h3>AI Assistant</h3>
@@ -14,51 +18,57 @@
       </button>
     </div>
     
-    <div class="sidebar-content" v-if="!isCollapsed">
-      <div class="ai-profile">
-        <div class="ai-avatar">AI</div>
-        <div class="ai-status">Ready to help</div>
-      </div>
-      
-      <div class="message-container">
-        <div v-for="(message, index) in messages" :key="index" 
-             :class="['message', message.sender === 'ai' ? 'ai-message' : 'user-message']">
-          <div class="message-content">{{ message.text }}</div>
-          <div class="message-time">{{ message.time }}</div>
+    <transition name="ai-panel">
+      <div class="sidebar-content" v-show="!isCollapsed">
+        <div class="ai-profile">
+          <div class="ai-avatar">AI</div>
+          <div class="ai-status">Ready to help</div>
+        </div>
+        
+        <div class="message-container" ref="messageContainer">
+          <div v-for="(message, index) in messages" :key="index" 
+               :class="['message', message.sender === 'ai' ? 'ai-message' : 'user-message']">
+            <div class="message-content">{{ message.text }}</div>
+            <div class="message-time">{{ message.time }}</div>
+          </div>
+        </div>
+        
+        <div class="input-container">
+          <textarea 
+            v-model="userInput" 
+            placeholder="Ask me anything about your document..." 
+            @keydown.enter.exact.prevent="sendMessage"
+            ref="messageInput"
+            class="message-input"
+          ></textarea>
+          <button class="send-btn" @click="sendMessage">
+            <span class="send-icon">↑</span>
+          </button>
+        </div>
+        
+        <div class="suggestion-chips">
+          <button 
+            v-for="(suggestion, index) in suggestions" 
+            :key="index"
+            class="suggestion-chip"
+            @click="usesuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </button>
         </div>
       </div>
-      
-      <div class="input-container">
-        <textarea 
-          v-model="userInput" 
-          placeholder="Ask me anything about your document..." 
-          @keyup.enter="sendMessage"
-          class="message-input"
-        ></textarea>
-        <button class="send-btn" @click="sendMessage">
-          <span class="send-icon">↑</span>
-        </button>
-      </div>
-      
-      <div class="suggestion-chips">
-        <button 
-          v-for="(suggestion, index) in suggestions" 
-          :key="index"
-          class="suggestion-chip"
-          @click="usesuggestion(suggestion)"
-        >
-          {{ suggestion }}
-        </button>
-      </div>
-    </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, watch } from 'vue';
+import { ref, reactive, nextTick, watch, onMounted } from 'vue';
 
-const isCollapsed = ref(false);
+const isCollapsed = ref(true);
+const isReady = ref(false);
 const userInput = ref('');
+const messageContainer = ref(null);
+const messageInput = ref(null);
 
 const messages = reactive([
   { 
@@ -77,6 +87,12 @@ const suggestions = [
 
 function toggleSidebar() {
   isCollapsed.value = !isCollapsed.value;
+  if (!isCollapsed.value) {
+    nextTick(() => {
+      scrollToBottom();
+      messageInput.value?.focus();
+    });
+  }
 }
 
 function sendMessage() {
@@ -114,7 +130,7 @@ function formatTime(date) {
 
 function scrollToBottom() {
   nextTick(() => {
-    const container = document.querySelector('.message-container');
+    const container = messageContainer.value;
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
@@ -125,41 +141,59 @@ function scrollToBottom() {
 watch(() => messages.length, () => {
   scrollToBottom();
 });
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    isReady.value = true;
+  });
+});
 </script>
 
 <style scoped>
 .ai-sidebar {
-  width: 100%;
-  max-height: calc(100vh - 48px);
-  height: fit-content;
+  position: fixed;
+  right: 1.75rem;
+  bottom: 1.75rem;
+  width: 420px;
+  max-height: min(75vh, 640px);
   background: linear-gradient(to bottom, #ffffff, #f8fafc);
   border: 2px solid #e0e7ff;
-  border-radius: 16px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 22px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 24px rgba(66, 133, 244, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 18px 45px rgba(66, 133, 244, 0.22), 0 6px 16px rgba(15, 23, 42, 0.18);
   overflow: hidden;
   overscroll-behavior: contain;
+  transform-origin: bottom right;
+  transform: translateY(16px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease, box-shadow 0.35s ease;
+  z-index: 1050;
+}
+
+.ai-sidebar.ready {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .ai-sidebar.collapsed {
-  width: 180px;
-  height: 64px;
-  border-radius: 32px;
-  position: fixed;
-  right: 2rem;
-  bottom: 2rem;
-  transform: translateY(0);
-  min-height: unset;
-  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.25), 0 3px 10px rgba(0, 0, 0, 0.1);
+  width: 240px;
+  max-height: 80px;
+  border-radius: 36px;
   cursor: pointer;
-  z-index: 1000;
+  padding-bottom: 0;
+  box-shadow: 0 16px 32px rgba(66, 133, 244, 0.3), 0 6px 18px rgba(15, 23, 42, 0.22);
 }
 
 .ai-sidebar.collapsed:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 32px rgba(66, 133, 244, 0.4), 0 6px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 22px 36px rgba(66, 133, 244, 0.36), 0 10px 22px rgba(15, 23, 42, 0.22);
+}
+
+.ai-sidebar.expanded {
+  pointer-events: auto;
 }
 
 .sidebar-header {
@@ -173,14 +207,30 @@ watch(() => messages.length, () => {
   min-height: 64px;
   box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
 .ai-sidebar.collapsed .sidebar-header {
   border-bottom: none;
-  padding: 12px 20px;
-  min-height: 64px;
-  justify-content: space-between;
-  border-radius: 32px;
+  padding: 22px 64px 22px 32px;
+  min-height: 80px;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 36px;
+}
+
+.ai-sidebar.collapsed .toggle-btn {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: white;
+}
+
+.ai-sidebar.collapsed .toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .header-content {
@@ -192,6 +242,11 @@ watch(() => messages.length, () => {
 
 .ai-sidebar.collapsed .header-content {
   opacity: 1;
+}
+
+.ai-sidebar.collapsed .header-content h3 {
+  font-size: 17px;
+  font-weight: 600;
 }
 
 .sidebar-header h3 {
@@ -230,13 +285,28 @@ watch(() => messages.length, () => {
   height: 100%;
   overflow: hidden;
   opacity: 1;
-  transition: opacity 0.3s ease;
+  max-height: calc(70vh - 120px);
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease, max-height 0.35s ease;
   overscroll-behavior: contain;
 }
 
 .ai-sidebar.collapsed .sidebar-content {
   opacity: 0;
   pointer-events: none;
+  max-height: 0;
+  transform: translateY(12px);
+}
+
+.ai-panel-enter-active,
+.ai-panel-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.ai-panel-enter-from,
+.ai-panel-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 .ai-profile {
@@ -277,8 +347,8 @@ watch(() => messages.length, () => {
   flex-direction: column;
   gap: 12px;
   background: linear-gradient(to bottom, #fafbff, #ffffff);
-  max-height: calc(100vh - 400px);
-  min-height: 300px;
+  max-height: none;
+  min-height: 280px;
   scroll-behavior: smooth;
   overscroll-behavior: contain;
 }

@@ -6,8 +6,8 @@
           <v-img src="../assets/logo.svg" alt="Docs Edit Logo" />
         </v-avatar>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold brand-title gradient-text">Edity</span>
-          <span class="text-caption brand-subtitle">Documents Edit</span>
+          <span class="text-h6 font-weight-bold brand-title gradient-text">Docs Edit</span>
+          <span class="text-caption brand-subtitle">Document Workspace</span>
         </div>
       </div>
     </template>
@@ -38,9 +38,11 @@
         color="grey-darken-1"
         prepend-icon="mdi-login"
         class="login-btn text-none"
-        @click="navigate('/profile')"
+        :loading="isLoading"
+        :disabled="isLoading"
+        @click="startGoogleLogin"
       >
-        Sign In
+        Sign Up
       </v-btn>
 
       <!-- User Profile - Shows when logged in -->
@@ -160,19 +162,65 @@ export default {
       isLoading: false,
       user: null,
       profileMenu: false,
+      _googleAuthListener: null,
       navigationLinks: [
         { name: 'Home', icon: 'mdi-home-outline', route: '/' },
         { name: 'Dashboard', icon: 'mdi-view-dashboard-outline', route: '/dashboard' },
         { name: 'Documents', icon: 'mdi-file-document-multiple-outline', route: '/documents' },
+        { name: 'New Document', icon: 'mdi-file', route: '/pdf-editor' },
         { name: 'Profile', icon: 'mdi-account-outline', route: '/profile' },
-        { name: 'Settings', icon: 'mdi-cog-outline', route: '/settings' }
+        { name: 'Settings', icon: 'mdi-cog-outline', route: '/settings' },
+        
       ]
     }
   },
   mounted() {
     this.loadUserFromStorage()
+    this.registerGoogleListener()
+  },
+  beforeUnmount() {
+    if (this._googleAuthListener) {
+      window.removeEventListener('google-login-response', this._googleAuthListener)
+      this._googleAuthListener = null
+    }
   },
   methods: {
+    registerGoogleListener() {
+      if (this._googleAuthListener) return
+      this._googleAuthListener = (event) => {
+        if (event?.detail) {
+          this.handleGoogleLogin(event.detail)
+        }
+      }
+      window.addEventListener('google-login-response', this._googleAuthListener)
+    },
+
+    startGoogleLogin() {
+      if (this.isLoading) return
+
+      const googleId = window?.google?.accounts?.id
+      if (!googleId) {
+        console.error('Google Sign-In library not ready')
+        alert('Google Sign-In is not ready yet. Please try again in a moment.')
+        return
+      }
+
+      this.isLoading = true
+
+      googleId.prompt((notification) => {
+        if (notification.isNotDisplayed?.()) {
+          console.warn('Google prompt was not displayed', notification.getNotDisplayedReason?.())
+          this.isLoading = false
+        } else if (notification.isSkippedMoment?.()) {
+          console.warn('Google prompt was skipped', notification.getSkippedReason?.())
+          this.isLoading = false
+        } else if (notification.isDismissedMoment?.()) {
+          console.warn('Google prompt was dismissed', notification.getDismissedReason?.())
+          this.isLoading = false
+        }
+      })
+    },
+
      animateIcon(linkName) {
        // This method will be used for icon animations on hover
        const icons = document.querySelectorAll('.nav-btn .v-icon')
@@ -268,6 +316,12 @@ export default {
       userService.logout()
       this.user = null
       console.log('🚪 Logged out - localStorage cleared')
+      try {
+        window?.google?.accounts?.id?.disableAutoSelect?.()
+      } catch (err) {
+        console.warn('Failed to disable Google auto select', err)
+      }
+      this.navigate('/')
     },
 
     navigate(route) {
