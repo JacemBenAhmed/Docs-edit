@@ -63,6 +63,7 @@
 
 <script setup>
 import { ref, reactive, nextTick, watch, onMounted } from 'vue';
+import { askChat } from '@/services/chatService.js'
 
 const isCollapsed = ref(true);
 const isReady = ref(false);
@@ -95,28 +96,49 @@ function toggleSidebar() {
   }
 }
 
-function sendMessage() {
+async function sendMessage() {
   if (!userInput.value.trim()) return;
-  
+
+  const prompt = userInput.value
+
   // Add user message
   messages.push({
-    text: userInput.value,
+    text: prompt,
     sender: 'user',
     time: formatTime(new Date())
   });
-  
+
+  // Clear input and scroll
   userInput.value = '';
   scrollToBottom();
-  
-  // Simulate AI response
-  setTimeout(() => {
-    messages.push({
-      text: "I'm analyzing your request. This is a simulated response for now. In a real implementation, this would connect to an AI service.",
-      sender: 'ai',
-      time: formatTime(new Date())
-    });
-    scrollToBottom();
-  }, 1000);
+
+  // Add assistant thinking placeholder we can update
+  const assistantMsg = {
+    text: 'Thinking…',
+    sender: 'ai',
+    time: formatTime(new Date())
+  }
+  messages.push(assistantMsg)
+  const assistantIndex = messages.length - 1
+  scrollToBottom()
+
+  // Call backend
+  try {
+    const full = await askChat(prompt)
+    let content = full || '(No response)'
+    try {
+      const parsed = JSON.parse(full)
+      if (parsed && typeof parsed === 'object') {
+        content = parsed.message || parsed.response || parsed.answer || parsed.data || parsed.content || content
+      }
+    } catch {}
+    messages[assistantIndex].text = content
+  } catch (err) {
+    console.error('AI chat error:', err)
+    messages[assistantIndex].text = `Error: ${err?.message || 'Failed to get response'}`
+  } finally {
+    scrollToBottom()
+  }
 }
 
 function usesuggestion(suggestion) {

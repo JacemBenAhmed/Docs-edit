@@ -6,6 +6,7 @@ import ProfileView from '../views/ProfileView.vue'
 import EditView from '../views/EditView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import PdfEditor from '../components/PdfEditor.vue'
+import AssistantView from '../views/AssistantView.vue'
 import { Editor } from '@tiptap/vue-3'
 
 const isAuthenticated = () => {
@@ -60,6 +61,11 @@ const routes = [
     path: '/pdf-editor',
     name: 'pdf-editor',
     component: PdfEditor
+  },
+  {
+    path: '/assistant',
+    name: 'assistant',
+    component: AssistantView
   },
   {
     path: '/:pathMatch(.*)*',
