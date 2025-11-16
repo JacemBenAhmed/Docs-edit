@@ -1,8 +1,9 @@
 <template>
   <div class="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-6">
+    <DocumentSidebar :metadata="documentMetadata" :comments="documentComments" />
     <div class="mx-auto w-full px-6 editor-container">
       <div class="editor-workspace">
-        <div class="sticky top-0 z-40 mb-3 mx-auto" style="width: 210mm;">
+        <div class="editor-toolbar sticky-toolbar mx-auto" style="width: 210mm;">
           <MenuBar :editor="editor" class="rounded-xl shadow-2xl border-2 border-blue-100 bg-white/95 backdrop-blur-md transition-all duration-300 hover:shadow-xl"/>
         </div>
         <div class="pages-container">
@@ -36,9 +37,44 @@ import DraggableImage from '../extensions/DraggableImage.js'
 import TableHTML from '../extensions/TableHTML.js'
 import MenuBar from './MenuBar.vue'
 import AiSidebar from './AiSidebar.vue'
+import DocumentSidebar from './DocumentSidebar.vue'
 
 const approxLines = 46  
 const emptyParagraphs = Array.from({ length: approxLines }, () => '<p>&nbsp;</p>').join('')
+
+// Document metadata
+const documentMetadata = ref({
+  author: 'You',
+  createdDate: new Date('2024-11-01'),
+  lastEdited: new Date(),
+  version: 'v1.2',
+  wordCount: 2847,
+  pageCount: 5
+})
+
+// Document comments
+const documentComments = ref([
+  {
+    username: 'Sarah Johnson',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    text: 'Great opening! The introduction really sets the tone well.'
+  },
+  {
+    username: 'Mike Chen',
+    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+    text: 'Can you clarify the methodology section? Need more detail on the approach.'
+  },
+  {
+    username: 'Alex Rivera',
+    timestamp: new Date(Date.now() - 30 * 60 * 1000),
+    text: 'Love the examples in the case study. Consider adding citations for the data.'
+  },
+  {
+    username: 'Jordan Lee',
+    timestamp: new Date(Date.now() - 15 * 60 * 1000),
+    text: 'The conclusion is well-structured. Minor grammar fix needed in paragraph 3.'
+  }
+])
 
 const FontSize = Extension.create({
   name: 'fontSize',
@@ -261,10 +297,36 @@ onBeforeUnmount(() => {
   max-width: 1800px;
   position: relative;
   padding-bottom: 140px;
+  padding-right: 480px; /* reduced space for smaller sidebar */
+  padding-left: 320px; /* space for left document sidebar */
+  transition: padding-right 260ms ease, padding-left 260ms ease;
 }
 
 .editor-workspace {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1400px) {
+  .editor-container {
+    padding-right: 360px;
+    padding-left: 280px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .editor-container {
+    padding-right: 280px;
+    padding-left: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .editor-container {
+    padding-right: 0; /* remove right padding on small screens */
+    padding-left: 0; /* remove left padding on small screens */
+  }
 }
 
 :deep(*::-webkit-scrollbar) {
@@ -285,6 +347,12 @@ onBeforeUnmount(() => {
 
 :deep(*::-webkit-scrollbar-thumb:hover) {
   background: linear-gradient(135deg, #3367d6, #4a8be8);
+}
+
+.pages-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* center document */
 }
 
 .prose :deep(p) {
@@ -317,6 +385,26 @@ onBeforeUnmount(() => {
 .prose :deep(p:focus) {
   border-bottom: 2px solid #4285f4;
   background: linear-gradient(to right, transparent, rgba(66, 133, 244, 0.03), transparent);
+}
+
+/* Remove default browser focus outline for the editor container and ensure no black border shows
+   when the editable area (ProseMirror) or inner elements receive focus. Keep caret and
+   editable behavior intact. */
+:deep(.ProseMirror), .prose :deep(.ProseMirror) {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+:deep(.ProseMirror):focus, :deep(.ProseMirror[contenteditable="true"]:focus), .prose :deep(.ProseMirror:focus) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Also prevent the browser from showing a focus ring on elements inside the editor */
+.prose :deep(*:focus) {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 ::selection {
@@ -416,6 +504,44 @@ onBeforeUnmount(() => {
   background-color: white;
   border: 1px solid #dadce0;
   color: #202124;
+}
+
+/* Sticky toolbar wrapper adjustments (placement, sticky behavior, shadow/transition) */
+.sticky-toolbar {
+  /* Use fixed positioning so the toolbar remains visible reliably across scroll containers */
+  position: fixed;
+  top: 96px; /* placed below the app navbar for proper spacing */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  margin-bottom: 10px;
+  transition: box-shadow 260ms ease, transform 260ms ease, backdrop-filter 260ms ease;
+  will-change: transform, box-shadow;
+}
+
+/* Add subtle elevation to the inner MenuBar when the toolbar is fixed */
+.sticky-toolbar :deep(.rounded-xl) {
+  transition: box-shadow 260ms ease, transform 260ms ease;
+  box-shadow: 0 10px 30px rgba(12,18,30,0.09);
+  transform: translateY(-2px);
+}
+
+/* Slightly raise the menubar for better ergonomics */
+.sticky-toolbar :deep(.menubar-container) {
+  transform: translateY(-6px);
+  transition: transform 220ms ease;
+  overflow: visible; /* ensure dropdowns are not clipped */
+  z-index: 10000;
+}
+
+/* Add spacing to the top of the editor workspace so fixed toolbar doesn't overlap content */
+.editor-workspace {
+  padding-top: 180px; /* ensure content is below the lowered fixed toolbar */
+}
+
+@media (max-width: 920px) {
+  .sticky-toolbar { top: 80px; }
+  .editor-workspace { padding-top: 200px; }
 }
 
 :deep(.menubar-button:hover) {

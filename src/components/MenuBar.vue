@@ -35,6 +35,11 @@
               </svg>
               Print
             </button>
+            <div class="dropdown-divider"></div>
+            <button  class="dropdown-item">
+              <i class="mdi mdi-content-save"></i>
+              Save
+            </button>
           </div>
         </div>
 
@@ -591,13 +596,16 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
   border-bottom: 1px solid #e8eaed;
   box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.05);
   user-select: none;
+  overflow: visible; /* allow dropdowns and color pickers to escape */
+  position: relative;
+  z-index: 10001; /* keep menubar above document content */
 }
 
 /* Top Row - File/Insert Menus */
 .menu-row {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 12px 18px;
   border-bottom: 2px solid #e8eaed;
   background: linear-gradient(to bottom, #ffffff, #f8f9fa);
   box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
@@ -607,8 +615,8 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
 .menubar-gdocs {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 80px 12px  ;
+  gap: 6px;
+  padding: 12px 16px;
   background: #ffffff;
   overflow-x: auto;
 }
@@ -629,7 +637,7 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   border: 2px solid #e8eaed;
   border-radius: 6px;
   background: #ffffff;
@@ -681,6 +689,13 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
   z-index: 1000;
   padding: 6px 0;
   animation: dropdownFadeIn 150ms ease-out;
+}
+.color-dropdown {
+  z-index: 10050 !important; /* ensure color picker shows above everything */
+}
+
+.dropdown-content {
+  z-index: 10050; /* make dropdowns appear above editor content and fixed toolbar */
 }
 
 @keyframes dropdownFadeIn {
@@ -743,8 +758,8 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: none;
   border-radius: 4px;
@@ -793,7 +808,7 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
   left: 50%;
   transform: translateX(-50%);
   width: 16px;
-  height: 3px;
+  height: 28px;
   border-radius: 1px;
 }
 
@@ -826,8 +841,8 @@ const alignJustifyIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="
 
 /* Select Dropdowns - Google Docs Style */
 .gd-select {
-  height: 32px;
-  padding: 0 24px 0 10px;
+  height: 36px;
+  padding: 0 28px 0 12px;
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;

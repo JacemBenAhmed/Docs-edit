@@ -123,42 +123,5 @@ export default {
 </script>
 
 <style scoped>
-.assistant-chat {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-height: calc(100vh - 120px);
-}
-.toolbar {
-  display: flex;
-  gap: 8px;
-  padding: 8px 0;
-}
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 0;
-}
-.message-row {
-  display: flex;
-  align-items: flex-start;
-  margin: 6px 0;
-}
-.message-row.user { flex-direction: row-reverse; }
-.message-row .avatar { margin: 0 8px; }
-.bubble {
-  max-width: 75%;
-  border-radius: 12px;
-  padding: 10px 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.bubble.user { background: #e3f2fd; color: #0d47a1; }
-.bubble.assistant { background: #f3f4f6; color: #111827; }
-.composer {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px 0;
-}
+
 </style>
