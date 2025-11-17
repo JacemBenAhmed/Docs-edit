@@ -5,7 +5,7 @@
       <div class="menu-group">
         <!-- File Menu -->
         <div class="dropdown-menu">
-          <button class="menu-btn" @click="toggleFileMenu" :disabled="!editor">
+          <button class="menu-btn" @click="toggleFileMenu" type="button">
             File
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"/>
@@ -45,7 +45,7 @@
 
         <!-- Insert Menu -->
         <div class="dropdown-menu">
-          <button class="menu-btn" @click="toggleInsertMenu" :disabled="!editor">
+          <button class="menu-btn" @click="toggleInsertMenu" type="button">
             Insert
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"/>
@@ -100,6 +100,48 @@
                 <path d="M9 18h1.3M3 22l3-7 6 6-7 3z"/>
               </svg>
               Drawing
+            </button>
+          </div>
+        </div>
+
+        <!-- Share Menu -->
+        <div class="dropdown-menu">
+          <button class="menu-btn" @click="toggleShareMenu" type="button">
+            <i class="mdi mdi-share-variant" style="font-size:14px"></i>
+            <span style="margin-left:6px">Share</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div v-if="showShareMenu" class="dropdown-content" @mouseleave="showShareMenu = false">
+            <button class="dropdown-item" @click="openShare">
+              <i class="mdi mdi-account-multiple" style="margin-right:8px"></i>
+              Share with…
+            </button>
+          </div>
+        </div>
+
+        <!-- Tools Menu -->
+        <div class="dropdown-menu">
+          <button class="menu-btn" @click="toggleToolsMenu" type="button">
+            <i class="mdi mdi-robot" style="font-size:14px"></i>
+            <span style="margin-left:6px">Tools</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div v-if="showToolsMenu" class="dropdown-content" @mouseleave="showToolsMenu = false">
+            <button class="dropdown-item" @click="runToolLocal('Grammar Correction')">
+              <i class="mdi mdi-spellcheck" style="margin-right:8px"></i>
+              Grammar Correction
+            </button>
+            <button class="dropdown-item" @click="runToolLocal('Syntax Error Detection')">
+              <i class="mdi mdi-code-tags" style="margin-right:8px"></i>
+              Syntax Error Detection
+            </button>
+            <button class="dropdown-item" @click="runToolLocal('Style Improvements')">
+              <i class="mdi mdi-format-letter-case" style="margin-right:8px"></i>
+              Style Improvements
             </button>
           </div>
         </div>
@@ -291,11 +333,37 @@ const showHighlightPicker = ref(false)
 const imageInput = ref(null)
 const showFileMenu = ref(false)
 const showInsertMenu = ref(false)
+const showShareMenu = ref(false)
+const showToolsMenu = ref(false)
 const showTableModal = ref(false)
 const tableRows = ref(3)
 const tableColumns = ref(3)
 
 const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36,40, 48, 72, 96]
+
+const emit = defineEmits(['open-share','run-tool','open-draw'])
+
+function toggleShareMenu() {
+  showShareMenu.value = !showShareMenu.value
+  showToolsMenu.value = false
+  showFileMenu.value = false
+}
+
+function toggleToolsMenu() {
+  showToolsMenu.value = !showToolsMenu.value
+  showShareMenu.value = false
+  showFileMenu.value = false
+}
+
+function openShare() {
+  showShareMenu.value = false
+  emit('open-share')
+}
+
+function runToolLocal(name) {
+  showToolsMenu.value = false
+  emit('run-tool', name)
+}
 
 watch(editor, (ed) => {
   if (!ed) return
@@ -422,7 +490,7 @@ function addTable() {
 
 function insertDrawing() {
   showInsertMenu.value = false
-  alert('Drawing feature coming soon! You can insert images for now.')
+  emit('open-draw')
 }
 
 function handleImageUpload(event) {

@@ -4,7 +4,13 @@
     <div class="mx-auto w-full px-6 editor-container">
       <div class="editor-workspace">
         <div class="editor-toolbar sticky-toolbar mx-auto" style="width: 210mm;">
-          <MenuBar :editor="editor" class="rounded-xl shadow-2xl border-2 border-blue-100 bg-white/95 backdrop-blur-md transition-all duration-300 hover:shadow-xl"/>
+          <MenuBar
+            :editor="editor"
+            class="rounded-xl shadow-2xl border-2 border-blue-100 bg-white/95 backdrop-blur-md transition-all duration-300 hover:shadow-xl"
+            @open-share="openShareModal"
+            @run-tool="runTool"
+            @open-draw="openDrawModal"
+          />
         </div>
         <div class="pages-container">
           <div class="document shadow-2xl rounded-lg bg-white transition-all duration-300 hover:shadow-3xl mx-auto" 
@@ -18,6 +24,8 @@
         </div>
       </div>
       <AiSidebar />
+      <ShareModal v-if="showShareModal" :users="shareUsers" @close="showShareModal = false" @confirm="onShareConfirm" />
+      <DrawCanvas v-if="showDrawModal" @close="showDrawModal = false" @save="onDrawSave" />
     </div>
   </div>
 </template>
@@ -38,6 +46,8 @@ import TableHTML from '../extensions/TableHTML.js'
 import MenuBar from './MenuBar.vue'
 import AiSidebar from './AiSidebar.vue'
 import DocumentSidebar from './DocumentSidebar.vue'
+import ShareModal from './ShareModal.vue'
+import DrawCanvas from './DrawCanvas.vue'
 
 const approxLines = 46  
 const emptyParagraphs = Array.from({ length: approxLines }, () => '<p>&nbsp;</p>').join('')
@@ -157,6 +167,50 @@ const MinimumLines = Extension.create({
 })
 const editor = ref(null)
 const showSidebar = ref(false)
+const showShareModal = ref(false)
+const showDrawModal = ref(false)
+
+// Sample users for the Share modal (replace with real data when available)
+const shareUsers = ref([
+  { name: 'Sarah Johnson', email: 'sarah.johnson@example.com', avatar: 'https://i.pravatar.cc/150?img=12' },
+  { name: 'Mike Chen', email: 'mike.chen@example.com', avatar: 'https://i.pravatar.cc/150?img=5' },
+  { name: 'Alex Rivera', email: 'alex.rivera@example.com', avatar: 'https://i.pravatar.cc/150?img=25' },
+  { name: 'Jordan Lee', email: 'jordan.lee@example.com', avatar: 'https://i.pravatar.cc/150?img=32' },
+  { name: 'Priya Patel', email: 'priya.patel@example.com', avatar: 'https://i.pravatar.cc/150?img=3' },
+])
+
+function openShareModal() {
+  showShareModal.value = true
+}
+
+function runTool(name) {
+  // Presentational only - show a lightweight notification
+  alert(`${name} — this is a UI-only demo action.`)
+}
+
+function openDrawModal() {
+  showDrawModal.value = true
+}
+
+function onDrawSave(base64) {
+  showDrawModal.value = false
+  if (!editor.value) return
+  try {
+    // Insert image at current selection / cursor
+    editor.value.chain().focus().setImage({ src: base64 }).run()
+    // feedback
+    console.log('Inserted drawing into document')
+  } catch (err) {
+    console.error('Error inserting drawing:', err)
+  }
+}
+
+function onShareConfirm(selected) {
+  showShareModal.value = false
+  // For now, just log the selected collaborators. In production, call API.
+  console.log('Shared with:', selected)
+  alert(`Shared with ${selected.length} collaborator(s).`)
+}
 const prompt = ref("")
 const chat = ref([
   { role: 'ai', content: '👋 Hi! Ask me anything about your writing.' }
@@ -536,7 +590,7 @@ onBeforeUnmount(() => {
 
 /* Add spacing to the top of the editor workspace so fixed toolbar doesn't overlap content */
 .editor-workspace {
-  padding-top: 180px; /* ensure content is below the lowered fixed toolbar */
+  padding-top: 180px; /* ensure content is below the fixed toolbar */
 }
 
 @media (max-width: 920px) {
