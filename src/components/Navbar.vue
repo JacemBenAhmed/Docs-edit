@@ -2,12 +2,27 @@
   <v-app-bar color="white" prominent elevation="2" class="navbar-custom px-2 px-md-6">
     <template v-slot:prepend>
       <div class="d-flex align-center mr-4 logo-container animated-logo" @click="$router.push('/')" style="cursor: pointer;">
-        <v-avatar size="48" class="mr-3 brand-avatar floating">
-          <v-img src="../assets/logo.svg" alt="Docs Edit Logo" />
-        </v-avatar>
+        <div class="logo-wrapper mr-3">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" class="brand-logo">
+            <defs>
+              <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <rect width="120" height="120" rx="20" fill="url(#logoGrad)"/>
+            <rect x="25" y="20" width="70" height="85" rx="6" fill="white"/>
+            <line x1="35" y1="40" x2="85" y2="40" stroke="#4f46e5" stroke-width="3" stroke-linecap="round"/>
+            <line x1="35" y1="55" x2="85" y2="55" stroke="#4f46e5" stroke-width="3" stroke-linecap="round"/>
+            <line x1="35" y1="70" x2="75" y2="70" stroke="#4f46e5" stroke-width="3" stroke-linecap="round"/>
+            <path d="M85,25 L88,32 L95,32 L89,36 L92,43 L85,39 L78,43 L81,36 L75,32 L82,32 Z" fill="#fbbf24" stroke="white" stroke-width="1"/>
+            <path d="M30,85 L45,70 L52,77 L37,92 Z" fill="white"/>
+            <circle cx="52" cy="77" r="3" fill="#fbbf24"/>
+          </svg>
+        </div>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold brand-title gradient-text">Docs Edit</span>
-          <span class="text-caption brand-subtitle">Document Workspace</span>
+          <span class="text-h6 font-weight-bold brand-title gradient-text">Edity</span>
+          <span class="text-caption brand-subtitle">Your Documents Workspace</span>
         </div>
       </div>
     </template>
@@ -168,8 +183,6 @@ export default {
         { name: 'Dashboard', icon: 'mdi-view-dashboard-outline', route: '/dashboard' },
         { name: 'Documents', icon: 'mdi-file-document-multiple-outline', route: '/documents' },
         { name: 'New Document', icon: 'mdi-file', route: '/pdf-editor' },
-        { name: 'Profile', icon: 'mdi-account-outline', route: '/profile' },
-        { name: 'Settings', icon: 'mdi-cog-outline', route: '/settings' },
         
       ]
     }
@@ -337,22 +350,72 @@ export default {
 
 <style scoped>
 .navbar-custom {
-  background: linear-gradient(to right, #ffffff 0%, #f8f9fa 100%) !important;
-  border-bottom: 1px solid #e9ecef;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   transition: all 0.3s ease;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+  padding: 6px 12px;
+  z-index: 1000 !important;
+  position: relative;
 }
 
-.brand-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  transition: transform 0.5s ease;
+.logo-wrapper {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: visible;
+}
+
+.logo-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.3), rgba(124, 58, 237, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.logo-container:hover .logo-wrapper::before {
+  opacity: 1;
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+}
+
+.logo-container:hover .logo-wrapper {
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .brand-title {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #06b6d4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   transition: all 0.3s ease;
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  font-weight: 800;
 }
 
 .brand-subtitle {
@@ -361,8 +424,12 @@ export default {
 }
 
 .nav-btn {
-  font-weight: 500;
-  transition: all 0.3s ease;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: #0f172a !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -370,24 +437,25 @@ export default {
 .nav-btn::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 50%;
+  bottom: 6px;
+  left: 16px;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  transition: all 0.3s ease;
-  transform: translateX(-50%);
+  background: linear-gradient(90deg, #4f46e5, #22d3ee);
+  transition: width 0.25s ease;
+  border-radius: 999px;
 }
 
 .nav-btn:hover::after,
 .active-nav-btn::after {
-  width: 80%;
+  width: calc(100% - 32px);
 }
 
 .nav-btn:hover {
-  background-color: #f8f9fa !important;
-  color: #667eea !important;
-  transform: translateY(-1px);
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: #4f46e5 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.18);
 }
 
 .nav-text {
@@ -395,31 +463,35 @@ export default {
   z-index: 1;
 }
 
+.logo-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.logo-container:hover {
+  background: rgba(79, 70, 229, 0.05);
+  transform: translateX(-2px);
+}
+
 .animated-logo {
   transition: all 0.3s ease;
 }
 
-.animated-logo:hover .brand-avatar {
-  transform: scale(1.1) rotate(5deg);
-}
-
 .login-btn {
-  background: #4285f4 !important;
+  background: linear-gradient(135deg, #4f46e5 0%, #22d3ee 100%) !important;
   color: white !important;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: none;
-  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.28);
+  transition: all 0.25s ease;
 }
 
 .login-btn:hover {
-  background: #357ae8 !important;
-  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+  box-shadow: 0 16px 32px rgba(79, 70, 229, 0.32);
   transform: translateY(-1px);
-}
-
-.login-btn:active {
-  transform: translateY(0);
 }
 
 :deep(.v-btn:hover) {
@@ -433,10 +505,11 @@ export default {
 
 .navbar-custom {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  z-index: 1001 !important;
 }
 
-.brand-avatar {
-  animation: subtle-pulse 3s ease-in-out infinite;
+.logo-wrapper {
+  animation: subtle-pulse 4s ease-in-out infinite;
 }
 
 .icon-pulse {
@@ -452,11 +525,11 @@ export default {
 @keyframes subtle-pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
   50% {
-    transform: scale(1.02);
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    transform: scale(1.03);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 }
 
