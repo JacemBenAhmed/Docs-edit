@@ -1,6 +1,6 @@
 # Docs-edit
 
-Document management platform with Google OAuth authentication built with Vue.js and Vite .
+Document management platform with Google OAuth authentication built with Vue.js and Vite.
 
 ## 🚀 Quick Start
 
