@@ -17,7 +17,7 @@
               <span>AI-Powered Document Creation</span>
             </div>
             <h1 class="hero-headline">
-              THE easiest way with Edity ,
+              THEEE easiest way with Edity ,
               powered by <span class="gradient-text">AI</span>
             </h1>
             <p class="hero-description">
