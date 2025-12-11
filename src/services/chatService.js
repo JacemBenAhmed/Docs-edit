@@ -54,9 +54,9 @@ export async function ask(prompt, sessionId = getSessionId()) {
 }
 
 export async function askChat(prompt, sessionId = getSessionId()) {
-    console.log('Sending prompt to /assistant/ask:', prompt , API_BASE);
+    console.log('Sending prompt to /assistant/ask:', prompt , "http://20.117.203.119:7109/api");
 
-  const res = await fetch(buildUrl('/Assistant/ask'), {
+  const res = await fetch("http://20.117.203.119:7109/api/Assistant/ask", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, sessionId })
