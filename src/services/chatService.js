@@ -35,6 +35,10 @@ export function resetSession() {
 }
 
 export async function ask(prompt, sessionId = getSessionId()) {
+  
+
+  console.log('Sending prompt to /assistant/ask:', prompt , API_BASE);
+
   const res = await fetch(buildUrl('/assistant/ask'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -50,6 +54,8 @@ export async function ask(prompt, sessionId = getSessionId()) {
 }
 
 export async function askChat(prompt, sessionId = getSessionId()) {
+    console.log('Sending prompt to /assistant/ask:', prompt , API_BASE);
+
   const res = await fetch(buildUrl('/Assistant/ask'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
