@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/vue": "^1.17.3",
     "@mdi/font": "^7.4.47",
     "@tiptap/extension-color": "^3.9.1",
     "@tiptap/extension-font-family": "^3.10.0",

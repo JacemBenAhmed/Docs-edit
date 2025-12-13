@@ -8,9 +8,14 @@ import './assets/micro-interactions.css'
 import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
+import { clerkPlugin } from '@clerk/vue'
 
-// Google OAuth
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+// Clerk Configuration
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+if (!clerkPublishableKey) {
+  console.warn('VITE_CLERK_PUBLISHABLE_KEY is not set. Clerk authentication will not work.')
+}
 
 const vuetify = createVuetify({
   components,
@@ -48,26 +53,15 @@ const app = createApp(App)
 app.use(router)
 app.use(vuetify)
 
-// Initialize Google OAuth
-document.addEventListener('DOMContentLoaded', function() {
-  // Wait for Google API to load
-  const checkGoogleAPI = setInterval(() => {
-    if (window.google && window.google.accounts) {
-      clearInterval(checkGoogleAPI);
-      
-      google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: (response) => {
-          // This will be handled by the component that needs the response
-          const event = new CustomEvent('google-login-response', { detail: response });
-          window.dispatchEvent(event);
-        },
-        auto_select: false
-      });
-      
-      console.log('Google OAuth initialized successfully');
-    }
-  }, 100);
-});
+// Configure Clerk
+if (clerkPublishableKey) {
+  app.use(clerkPlugin, {
+    publishableKey: clerkPublishableKey,
+    afterSignInUrl: '/dashboard',
+    afterSignUpUrl: '/dashboard',
+    signInUrl: '/',
+    signUpUrl: '/'
+  })
+}
 
 app.mount('#app')
