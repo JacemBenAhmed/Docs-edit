@@ -53,9 +53,9 @@
                   color="primary"
                   size="small"
                   class="mr-2 mb-2"
-                  prepend-icon="mdi-google"
+                  prepend-icon="mdi-shield-check"
                 >
-                  Google Account
+                  Clerk Account
                 </v-chip>
                 <v-chip
                   color="success"
@@ -244,7 +244,7 @@
                         hide-details
                         density="comfortable"
                       ></v-text-field>
-                      <p class="form-hint">Email cannot be changed. It's linked to your Google account.</p>
+                      <p class="form-hint">Email is managed through your Clerk account.</p>
                     </div>
                     
                     <div class="form-row">
@@ -466,10 +466,10 @@
                     class="security-alert mb-6"
                   >
                     <div class="d-flex align-center">
-                      <v-icon class="mr-3" size="24">mdi-google</v-icon>
+                      <v-icon class="mr-3" size="24">mdi-shield-check</v-icon>
                       <div>
-                        <div class="font-weight-bold">Google Account Connected</div>
-                        <div class="text-caption">Your account is secured through Google Authentication</div>
+                        <div class="font-weight-bold">Clerk Account Connected</div>
+                        <div class="text-caption">Your account is secured through Clerk Authentication</div>
                       </div>
                     </div>
                   </v-alert>
@@ -795,13 +795,22 @@ export default {
   },
   methods: {
     loadUserData() {
-      const storedUser = userService.getUser()
-      if (storedUser) {
-        this.user = storedUser
-        this.accountSettings.name = storedUser.name || storedUser.displayName || ''
-        this.accountSettings.email = storedUser.email || ''
-        this.editProfileData.displayName = storedUser.name || storedUser.displayName || ''
-        this.editProfileData.bio = storedUser.bio || ''
+      // Get user from Clerk
+      const clerk = this.$clerk
+      if (clerk?.user) {
+        this.user = {
+          id: clerk.user.id,
+          email: clerk.user.primaryEmailAddress?.emailAddress || '',
+          name: clerk.user.fullName || clerk.user.firstName || 'User',
+          displayName: clerk.user.fullName || clerk.user.firstName || 'User',
+          firstName: clerk.user.firstName,
+          lastName: clerk.user.lastName,
+          picture: clerk.user.imageUrl,
+          photoURL: clerk.user.imageUrl
+        }
+        this.accountSettings.name = this.user.name
+        this.accountSettings.email = this.user.email
+        this.editProfileData.displayName = this.user.name
       } else {
         // Redirect to home if not logged in
         this.$router.push('/')
@@ -866,17 +875,11 @@ export default {
     
     async handleLogout() {
       try {
-        await userService.logout()
-        // Disable Google auto-select
-        try {
-          window?.google?.accounts?.id?.disableAutoSelect?.()
-        } catch (err) {
-          console.warn('Failed to disable Google auto select', err)
-        }
+        // Clerk handles logout through UserButton component
+        // If manual logout is needed, use: await this.$clerk.signOut()
         this.$router.push('/')
       } catch (error) {
         console.error('Logout error:', error)
-        // Force logout even if there's an error
         this.$router.push('/')
       }
     },

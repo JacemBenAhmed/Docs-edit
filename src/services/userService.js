@@ -1,82 +1,121 @@
 const API_BASE = import.meta.env.VITE_API_BASE 
 
 class UserService {
-
-      async googleLogin(userCredentials) {
-      try {
-        console.log('🔹 Sending Google user info to backend...', userCredentials)
-
-        const response = await fetch(`${API_BASE}/Auth/google-login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(userCredentials) 
-        })
-
-        if (!response.ok) {
-          let message = 'Login failed'
-          try {
-            const errorData = await response.json()
-            message = errorData.message || message
-          } catch {
-          }
-          throw new Error(`${message} (status: ${response.status})`)
-        }
-
-        const data = await response.json()
-        console.log('✅ Login successful:', data)
-
-        if (data.token) localStorage.setItem('token', data.token)
-        if (data.user) localStorage.setItem('user', JSON.stringify(data.user))
-
-        return data
-      } catch (error) {
-        console.error('❌ Google login error:', error.message)
-        throw error
-      }
+  /**
+   * Get the Clerk JWT token for API requests
+   * @param {Object} clerkInstance - The Clerk instance from $clerk
+   * @returns {Promise<string|null>} The JWT token or null
+   */
+  async getClerkToken(clerkInstance) {
+    if (!clerkInstance?.session) {
+      return null
     }
+    try {
+      const token = await clerkInstance.session.getToken()
+      return token
+    } catch (error) {
+      console.error('❌ Error getting Clerk token:', error)
+      return null
+    }
+  }
 
+  /**
+   * Make an authenticated API request with Clerk token
+   * @param {string} url - The API endpoint
+   * @param {Object} options - Fetch options
+   * @param {Object} clerkInstance - The Clerk instance
+   * @returns {Promise<Response>} The fetch response
+   */
+  async authenticatedFetch(url, options = {}, clerkInstance) {
+    const token = await this.getClerkToken(clerkInstance)
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers
+    })
+  }
 
-    async checkAuthStatus() {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) return null
-        
-        const response = await fetch(`${API_BASE}/Auth/validate`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
-        
-        if (response.ok) {
-          return JSON.parse(localStorage.getItem('user'))
-        } else {
-          this.logout()
-          return null
-        }
-      } catch (error) {
-        console.error('❌ Auth check error:', error.message)
-        this.logout()
+  /**
+   * Check if user is authenticated via Clerk
+   * @param {Object} clerkInstance - The Clerk instance
+   * @returns {boolean} True if authenticated
+   */
+  isAuthenticated(clerkInstance) {
+    return clerkInstance?.user !== null
+  }
+
+  /**
+   * Get current user from Clerk
+   * @param {Object} clerkInstance - The Clerk instance
+   * @returns {Object|null} The user object or null
+   */
+  getUser(clerkInstance) {
+    if (!clerkInstance?.user) {
+      return null
+    }
+    
+    return {
+      id: clerkInstance.user.id,
+      email: clerkInstance.user.primaryEmailAddress?.emailAddress,
+      name: clerkInstance.user.fullName || clerkInstance.user.firstName || 'User',
+      firstName: clerkInstance.user.firstName,
+      lastName: clerkInstance.user.lastName,
+      imageUrl: clerkInstance.user.imageUrl,
+      picture: clerkInstance.user.imageUrl
+    }
+  }
+
+  /**
+   * Sync Clerk user with backend via Google login endpoint
+   * @param {Object} clerkInstance - The Clerk instance
+   * @returns {Promise<{ token: string, user: Object } | null>} Auth payload or null
+   */
+  async googleLoginFromClerk(clerkInstance) {
+    try {
+      if (!API_BASE) return null
+      if (!clerkInstance?.user) return null
+      const email = clerkInstance.user.primaryEmailAddress?.emailAddress
+      const name = clerkInstance.user.fullName || clerkInstance.user.firstName || 'No Name'
+      const picture = clerkInstance.user.imageUrl || ''
+
+      const payload = { Name: name, Email: email, Picture: picture }
+      const url = `${API_BASE}/api/Auth/google-login`
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        console.error('❌ Backend google-login failed:', res.status, text)
         return null
       }
+
+      const data = await res.json()
+      if (data?.token && data?.user) {
+        try {
+          localStorage.setItem('apiAuth', JSON.stringify(data))
+        } catch {}
+        console.log('✅ Backend user synced:', data.user)
+        return data
+      }
+
+      return null
+    } catch (err) {
+      console.error('❌ googleLoginFromClerk error:', err)
+      return null
     }
-
-  async logout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    return Promise.resolve()
-  }
-
-  getUser() {
-    const userStr = localStorage.getItem('user')
-    return userStr ? JSON.parse(userStr) : null
-  }
-
-  getToken() {
-    return localStorage.getItem('token')
   }
 }
 

@@ -46,56 +46,37 @@
     <v-spacer></v-spacer>
 
     <div class="d-flex align-center ga-2">
-      <!-- Auth Area: Sign In button or Profile Menu -->
+      <!-- Clerk Authentication -->
+      <template v-if="clerkLoaded">
+        <SignedOut>
+          <div class="sign-in-wrapper">
+            <SignInButton mode="modal">
+              <button class="clerk-sign-in-button">
+                <v-icon class="mr-2">mdi-login</v-icon>
+                Sign In
+              </button>
+            </SignInButton>
+          </div>
+        </SignedOut>
+
+        <SignedIn>
+          <div class="clerk-user-button-wrapper">
+            <UserButton :afterSignOutUrl="'/'" />
+          </div>
+        </SignedIn>
+      </template>
+      
+      <!-- Loading state -->
       <v-btn
-        v-if="!user"
+        v-else
         variant="text"
         color="grey-darken-1"
         prepend-icon="mdi-login"
         class="login-btn text-none"
-        :loading="isLoading"
-        :disabled="isLoading"
-        @click="startGoogleLogin"
+        disabled
       >
-        Sign Up
+        Loading...
       </v-btn>
-
-      <!-- User Profile - Shows when logged in -->
-      <div v-else class="d-flex align-center">
-        <v-menu v-model="profileMenu" :close-on-content-click="false" location="bottom">
-          <template v-slot:activator="{ props }">
-            <v-avatar
-              v-bind="props"
-              size="40"
-              class="ml-2 user-avatar"
-              style="cursor: pointer; border: 2px solid #667eea;"
-            >
-              <v-img v-if="user?.picture" :src="user.picture" alt="User Profile" />
-              <v-icon v-else>mdi-account</v-icon>
-            </v-avatar>
-          </template>
-          
-          <v-card min-width="200" class="profile-menu-card">
-            <v-list>
-              <v-list-item>
-                <template v-slot:prepend>
-                  <v-avatar size="40">
-                    <v-img v-if="user?.picture" :src="user.picture" alt="User Profile" />
-                    <v-icon v-else>mdi-account</v-icon>
-                  </v-avatar>
-                </template>
-                <v-list-item-title>{{ user?.name || 'User' }}</v-list-item-title>
-                <v-list-item-subtitle>{{ user?.email || '' }}</v-list-item-subtitle>
-              </v-list-item>
-              
-              <v-divider></v-divider>
-              
-              <v-list-item prepend-icon="mdi-account-cog" title="Settings" @click="$router.push('/profile')"></v-list-item>
-              <v-list-item prepend-icon="mdi-logout" title="Logout" @click="logout"></v-list-item>
-            </v-list>
-          </v-card>
-        </v-menu>
-      </div>
 
       <!-- Mobile Menu -->
       <v-btn
@@ -164,177 +145,130 @@
 </template>
 
 <script>
+import { SignInButton, UserButton, SignedIn, SignedOut } from '@clerk/vue'
 import userService from '../services/userService.js'
-import { jwtDecode } from 'jwt-decode'
 
 export default {
   name: 'Navbar',
+  components: {
+    SignInButton,
+    UserButton,
+    SignedIn,
+    SignedOut
+  },
   data() {
     return {
       drawer: false,
       searchQuery: '',
       showSearch: false,
-      isLoading: false,
-      user: null,
-      profileMenu: false,
-      _googleAuthListener: null,
+      clerkLoaded: false,
+      apiSynced: false,
       navigationLinks: [
         { name: 'Home', icon: 'mdi-home-outline', route: '/' },
         { name: 'Dashboard', icon: 'mdi-view-dashboard-outline', route: '/dashboard' },
         { name: 'Documents', icon: 'mdi-file-document-multiple-outline', route: '/documents' },
         { name: 'New Document', icon: 'mdi-file', route: '/pdf-editor' },
-        
       ]
     }
   },
-  mounted() {
-    this.loadUserFromStorage()
-    this.registerGoogleListener()
+  async mounted() {
+    // Force light mode
+    try {
+      if (this.$vuetify.theme?.global?.name) {
+        this.$vuetify.theme.global.name.value = 'light'
+      }
+      localStorage.setItem('theme', 'light')
+    } catch {}
+    
+    // Wait for Clerk to load
+    await this.initializeClerk()
   },
-  beforeUnmount() {
-    if (this._googleAuthListener) {
-      window.removeEventListener('google-login-response', this._googleAuthListener)
-      this._googleAuthListener = null
+  computed: {
+    clerkUserId() {
+      return this.$clerk?.user?.id || null
+    }
+  },
+  watch: {
+    async clerkUserId(newVal) {
+      if (newVal && !this.apiSynced) {
+        try {
+          const auth = await userService.googleLoginFromClerk(this.$clerk)
+          if (auth) this.apiSynced = true
+        } catch {}
+      }
     }
   },
   methods: {
-    registerGoogleListener() {
-      if (this._googleAuthListener) return
-      this._googleAuthListener = (event) => {
-        if (event?.detail) {
-          this.handleGoogleLogin(event.detail)
+    async initializeClerk() {
+      try {
+        const clerk = this.$clerk
+        if (clerk) {
+          // Wait for Clerk to be ready
+          await clerk.load()
+          this.clerkLoaded = true
+          if (clerk.user) {
+            const u = clerk.user
+            console.log('Clerk user connected:', {
+              id: u.id,
+              email: u.primaryEmailAddress?.emailAddress,
+              name: u.fullName || u.firstName,
+              imageUrl: u.imageUrl
+            })
+            if (!this.apiSynced) {
+              try {
+                const auth = await userService.googleLoginFromClerk(clerk)
+                if (auth) this.apiSynced = true
+              } catch {}
+            }
+          }
+          clerk.addListener('user', async () => {
+            if (clerk.user) {
+              const u2 = clerk.user
+              console.log('Clerk user connected:', {
+                id: u2.id,
+                email: u2.primaryEmailAddress?.emailAddress,
+                name: u2.fullName || u2.firstName,
+                imageUrl: u2.imageUrl
+              })
+              if (!this.apiSynced) {
+                try {
+                  const auth = await userService.googleLoginFromClerk(clerk)
+                  if (auth) this.apiSynced = true
+                } catch {}
+              }
+            }
+            this.$forceUpdate()
+          })
+
+          clerk.addListener('session', async () => {
+            if (clerk.user && !this.apiSynced) {
+              try {
+                const auth = await userService.googleLoginFromClerk(clerk)
+                if (auth) this.apiSynced = true
+              } catch {}
+            }
+            this.$forceUpdate()
+          })
+        } else {
+          console.warn('Clerk not available')
+          this.clerkLoaded = true // Still show UI even if Clerk fails
         }
+      } catch (error) {
+        console.error('Error initializing Clerk:', error)
+        this.clerkLoaded = true // Show UI even on error
       }
-      window.addEventListener('google-login-response', this._googleAuthListener)
     },
-
-    startGoogleLogin() {
-      if (this.isLoading) return
-
-      const googleId = window?.google?.accounts?.id
-      if (!googleId) {
-        console.error('Google Sign-In library not ready')
-        alert('Google Sign-In is not ready yet. Please try again in a moment.')
-        return
-      }
-
-      this.isLoading = true
-
-      googleId.prompt((notification) => {
-        if (notification.isNotDisplayed?.()) {
-          console.warn('Google prompt was not displayed', notification.getNotDisplayedReason?.())
-          this.isLoading = false
-        } else if (notification.isSkippedMoment?.()) {
-          console.warn('Google prompt was skipped', notification.getSkippedReason?.())
-          this.isLoading = false
-        } else if (notification.isDismissedMoment?.()) {
-          console.warn('Google prompt was dismissed', notification.getDismissedReason?.())
-          this.isLoading = false
+    animateIcon(linkName) {
+      // This method will be used for icon animations on hover
+      const icons = document.querySelectorAll('.nav-btn .v-icon')
+      icons.forEach(icon => {
+        if (icon.closest('.nav-btn').textContent.includes(linkName)) {
+          icon.classList.add('icon-pulse')
+          setTimeout(() => {
+            icon.classList.remove('icon-pulse')
+          }, 500)
         }
       })
-    },
-
-     animateIcon(linkName) {
-       // This method will be used for icon animations on hover
-       const icons = document.querySelectorAll('.nav-btn .v-icon')
-       icons.forEach(icon => {
-         if (icon.closest('.nav-btn').textContent.includes(linkName)) {
-           icon.classList.add('icon-pulse')
-           setTimeout(() => {
-             icon.classList.remove('icon-pulse')
-           }, 500)
-         }
-       })
-     },
-    
-    async handleGoogleLogin(response) {
-      console.log('🔹 Google login response:', response)
-      
-      this.isLoading = true
-      try {
-        const credential = response.credential
-        
-        const decodedCredential = jwtDecode(credential)
-        console.log('📋 Decoded credential:', {
-          email: decodedCredential.email,
-          name: decodedCredential.name,
-          picture: decodedCredential.picture,
-          sub: decodedCredential.sub,
-          aud: decodedCredential.aud,
-          exp: new Date(decodedCredential.exp * 1000).toLocaleString(),
-          iat: new Date(decodedCredential.iat * 1000).toLocaleString(),
-          nbf: new Date(decodedCredential.nbf * 1000).toLocaleString()
-        })
-        
-        const userCredentials = {
-          email: decodedCredential.email,
-          name: decodedCredential.name,
-          picture: decodedCredential.picture,
-          sub: decodedCredential.sub,
-          aud: decodedCredential.aud,
-          exp: new Date(decodedCredential.exp * 1000).toLocaleString(),
-          iat: new Date(decodedCredential.iat * 1000).toLocaleString(),
-          nbf: new Date(decodedCredential.nbf * 1000).toLocaleString()
-        };
-
-        console.log('🔹 User credentials to send to backend:', userCredentials);
-
-
-        const result = await userService.googleLogin(userCredentials)
-        console.log('📦 Full result from backend:', result)
-        
-        if (result.user) {
-          this.user = result.user
-          console.log('✅ Login successful - User set:', this.user)
-        } else {
-          console.error('❌ No user in response')
-          throw new Error('No user data received from backend')
-        }
-        
-        console.log('🔍 Checking localStorage:', {
-          token: localStorage.getItem('token'),
-          user: localStorage.getItem('user')
-        })
-        
-        this.$forceUpdate()
-      } catch (err) {
-        console.error('❌ Login error:', err)
-        alert('Login failed: ' + err.message)
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    loadUserFromStorage() {
-      const storedUser = userService.getUser()
-      const token = userService.getToken()
-      if (storedUser && token) {
-        this.user = storedUser
-        console.log('✅ User loaded from localStorage:', this.user)
-      } else {
-        this.user = null
-      }
-      
-      // Load theme preference from localStorage
-      // Force light mode
-      try {
-        if (this.$vuetify.theme?.global?.name) {
-          this.$vuetify.theme.global.name.value = 'light'
-        }
-        localStorage.setItem('theme', 'light')
-      } catch {}
-    },
-
-    async logout() {
-      userService.logout()
-      this.user = null
-      console.log('🚪 Logged out - localStorage cleared')
-      try {
-        window?.google?.accounts?.id?.disableAutoSelect?.()
-      } catch (err) {
-        console.warn('Failed to disable Google auto select', err)
-      }
-      this.navigate('/')
     },
 
     navigate(route) {
@@ -554,5 +488,49 @@ export default {
 .profile-menu-card {
   overflow: hidden;
   border-radius: 12px;
+}
+
+/* Clerk UserButton wrapper styling */
+.clerk-user-button-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+/* Style Clerk components to match Vuetify theme */
+:deep(.cl-userButtonBox) {
+  cursor: pointer;
+}
+
+:deep(.cl-userButtonTrigger) {
+  border-radius: 50%;
+  border: 2px solid #667eea;
+}
+
+/* Sign In Button Styling */
+.sign-in-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.clerk-sign-in-button {
+  background: linear-gradient(135deg, #4f46e5 0%, #22d3ee 100%) !important;
+  color: white !important;
+  font-weight: 700;
+  text-transform: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.28);
+  transition: all 0.25s ease;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.clerk-sign-in-button:hover {
+  box-shadow: 0 16px 32px rgba(79, 70, 229, 0.32);
+  transform: translateY(-1px);
 }
 </style>

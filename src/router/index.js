@@ -9,9 +9,7 @@ import PdfEditor from '../components/PdfEditor.vue'
 import AssistantView from '../views/AssistantView.vue'
 import { Editor } from '@tiptap/vue-3'
 
-const isAuthenticated = () => {
-  return localStorage.getItem('token') !== null && localStorage.getItem('user') !== null
-}
+// Note: Clerk authentication check will be done in route guards using $clerk
 
 const routes = [
   {
@@ -38,13 +36,7 @@ const routes = [
     path: '/profile',
     name: 'profile',
     component: ProfileView,
-    beforeEnter: (to, from, next) => {
-      if (isAuthenticated()) {
-        next(); 
-      } else {
-        next({ path: '/', query: { login: 'true' }});
-      }
-    }
+    meta: { requiresAuth: true }
   },
   {
     path: '/dashboard',
@@ -84,6 +76,33 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
+})
+
+// Global navigation guard for Clerk authentication
+router.beforeEach(async (to, from, next) => {
+  // Get Clerk instance from the app
+  const app = router.app
+  const clerk = app?.config?.globalProperties?.$clerk
+  
+  // Check if route requires authentication
+  if (to.meta.requiresAuth) {
+    if (!clerk) {
+      console.warn('Clerk not initialized')
+      next({ path: '/', query: { redirect: to.fullPath } })
+      return
+    }
+    
+    // Wait for Clerk to be ready
+    await clerk.load()
+    
+    if (!clerk.user) {
+      // Redirect to home with sign-in prompt
+      next({ path: '/', query: { redirect: to.fullPath, signIn: 'true' } })
+      return
+    }
+  }
+  
+  next()
 })
 
 export default router
