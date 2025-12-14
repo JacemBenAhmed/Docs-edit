@@ -106,8 +106,32 @@
         </div>
       </div>
 
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-state">
+        <v-progress-circular
+          indeterminate
+          color="primary"
+          size="64"
+        ></v-progress-circular>
+        <p class="loading-text">Loading documents...</p>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="error-state">
+        <v-icon size="64" color="error" class="mb-4">mdi-alert-circle</v-icon>
+        <h3 class="error-title">Failed to load documents</h3>
+        <p class="error-message">{{ error }}</p>
+        <v-btn
+          color="primary"
+          @click="loadDocuments"
+          prepend-icon="mdi-refresh"
+        >
+          Retry
+        </v-btn>
+      </div>
+
       <!-- Documents Grid/List -->
-      <div v-if="filteredDocuments.length > 0" :class="viewMode === 'grid' ? 'documents-grid-modern' : 'documents-list-modern'">
+      <div v-else-if="filteredDocuments.length > 0" :class="viewMode === 'grid' ? 'documents-grid-modern' : 'documents-list-modern'">
         <div
           v-for="(doc, index) in filteredDocuments"
           :key="doc.id"
@@ -181,15 +205,16 @@
 
           <!-- Card Body -->
           <div class="card-body-modern">
-            <h3 class="card-title-modern">{{ doc.name }}</h3>
+            <h3 class="card-title-modern">{{ doc.name || doc.title }}</h3>
+            <p v-if="doc.description" class="card-description">{{ doc.description }}</p>
             <div class="card-meta-modern">
               <div class="meta-item">
                 <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
-                <span>{{ formatDate(doc.lastModified) }}</span>
+                <span>{{ formatDate(doc.lastModified || doc.updatedAt) }}</span>
               </div>
               <div class="meta-item">
                 <v-icon size="14" class="mr-1">mdi-account</v-icon>
-                <span>{{ doc.owner }}</span>
+                <span>{{ doc.owner || doc.author || 'Unknown' }}</span>
               </div>
             </div>
           </div>
@@ -264,6 +289,8 @@
 </template>
 
 <script>
+import documentService from '../services/documentService.js'
+
 export default {
   name: 'MyDocumentsView',
   data() {
@@ -271,72 +298,9 @@ export default {
       searchQuery: '',
       viewMode: 'grid', // 'grid' or 'list'
       sortBy: 'date',
-      documents: [
-        {
-          id: 1,
-          name: 'Project Proposal',
-          type: 'PDF',
-          lastModified: new Date('2024-01-15'),
-          owner: 'You',
-          shared: true
-        },
-        {
-          id: 2,
-          name: 'Meeting Notes',
-          type: 'DOCX',
-          lastModified: new Date('2024-01-10'),
-          owner: 'You',
-          shared: false
-        },
-        {
-          id: 3,
-          name: 'Budget Report',
-          type: 'XLSX',
-          lastModified: new Date('2024-01-05'),
-          owner: 'You',
-          shared: true
-        },
-        {
-          id: 4,
-          name: 'Presentation Slides',
-          type: 'PPTX',
-          lastModified: new Date('2023-12-28'),
-          owner: 'You',
-          shared: false
-        },
-        {
-          id: 5,
-          name: 'Research Paper',
-          type: 'PDF',
-          lastModified: new Date('2023-12-20'),
-          owner: 'You',
-          shared: true
-        },
-        {
-          id: 6,
-          name: 'Client Contract',
-          type: 'DOCX',
-          lastModified: new Date('2023-12-15'),
-          owner: 'You',
-          shared: false
-        },
-        {
-          id: 7,
-          name: 'Design Mockups',
-          type: 'PDF',
-          lastModified: new Date('2023-12-10'),
-          owner: 'You',
-          shared: true
-        },
-        {
-          id: 8,
-          name: 'Team Handbook',
-          type: 'DOCX',
-          lastModified: new Date('2023-12-05'),
-          owner: 'You',
-          shared: false
-        }
-      ],
+      documents: [],
+      isLoading: false,
+      error: null,
       sortOptions: [
         { value: 'date', label: 'Date Modified' },
         { value: 'name', label: 'Name (A-Z)' },
@@ -344,6 +308,9 @@ export default {
         { value: 'type', label: 'Type' }
       ]
     }
+  },
+  async mounted() {
+    await this.loadDocuments()
   },
   computed: {
     filteredDocuments() {
@@ -353,9 +320,12 @@ export default {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase()
         filtered = filtered.filter(doc => 
-          doc.name.toLowerCase().includes(query) ||
-          doc.type.toLowerCase().includes(query) ||
-          doc.owner.toLowerCase().includes(query)
+          doc.name?.toLowerCase().includes(query) ||
+          doc.title?.toLowerCase().includes(query) ||
+          doc.description?.toLowerCase().includes(query) ||
+          doc.type?.toLowerCase().includes(query) ||
+          doc.owner?.toLowerCase().includes(query) ||
+          doc.author?.toLowerCase().includes(query)
         )
       }
       
@@ -363,14 +333,16 @@ export default {
       filtered.sort((a, b) => {
         switch (this.sortBy) {
           case 'name':
-            return a.name.localeCompare(b.name)
+            return (a.name || a.title || '').localeCompare(b.name || b.title || '')
           case 'name-desc':
-            return b.name.localeCompare(a.name)
+            return (b.name || b.title || '').localeCompare(a.name || a.title || '')
           case 'type':
-            return a.type.localeCompare(b.type)
+            return (a.type || '').localeCompare(b.type || '')
           case 'date':
           default:
-            return b.lastModified - a.lastModified
+            const dateA = a.lastModified || a.updatedAt || new Date(0)
+            const dateB = b.lastModified || b.updatedAt || new Date(0)
+            return new Date(dateB) - new Date(dateA)
         }
       })
       
@@ -392,8 +364,13 @@ export default {
     },
     
     formatDate(date) {
+      if (!date) return 'Unknown'
+      
+      const dateObj = date instanceof Date ? date : new Date(date)
+      if (isNaN(dateObj.getTime())) return 'Invalid date'
+      
       const now = new Date()
-      const diffTime = Math.abs(now - date)
+      const diffTime = Math.abs(now - dateObj)
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       
       if (diffDays === 0) return 'Today'
@@ -403,8 +380,8 @@ export default {
       return new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      }).format(date)
+        year: dateObj.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      }).format(dateObj)
     },
     
     getDocumentIcon(type) {
@@ -446,6 +423,61 @@ export default {
       return gradients[type] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     },
     
+    /**
+     * Load documents from API
+     */
+    async loadDocuments() {
+      this.isLoading = true
+      this.error = null
+      
+      try {
+      
+
+      
+        
+        const apiDocuments = await documentService.getAllDocuments()
+        
+        this.documents = apiDocuments.map(doc => ({
+          id: doc.id,
+          name: doc.title, 
+          title: doc.title,
+          content: doc.content,
+          description: doc.description,
+          type: this.detectDocumentType(doc.content, doc.title),
+          lastModified: new Date(doc.updatedAt || doc.createdAt),
+          updatedAt: doc.updatedAt,
+          createdAt: doc.createdAt,
+          owner: doc.author || 'Unknown',
+          author: doc.author,
+          shared: false 
+        }))
+        
+        console.log('✅ Documents loaded:', this.documents)
+      } catch (error) {
+        console.error('❌ Error loading documents:', error)
+        this.error = error.message || 'Failed to load documents'
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    
+    detectDocumentType(content, title) {
+      const titleLower = (title || '').toLowerCase()
+      const contentLower = (content || '').toLowerCase()
+      
+      if (titleLower.endsWith('.pdf') || contentLower.includes('pdf')) return 'PDF'
+      if (titleLower.endsWith('.docx') || titleLower.endsWith('.doc')) return 'DOCX'
+      if (titleLower.endsWith('.xlsx') || titleLower.endsWith('.xls')) return 'XLSX'
+      if (titleLower.endsWith('.pptx') || titleLower.endsWith('.ppt')) return 'PPTX'
+      if (titleLower.endsWith('.txt')) return 'TXT'
+      if (titleLower.endsWith('.jpg') || titleLower.endsWith('.jpeg')) return 'JPG'
+      if (titleLower.endsWith('.png')) return 'PNG'
+      
+      // Default to DOCX for text documents
+      return 'DOCX'
+    },
+    
     searchDocuments() {
       // Search is handled by computed property
     },
@@ -455,20 +487,37 @@ export default {
     },
     
     shareDocument(doc) {
-      console.log('Sharing document:', doc.name)
+      console.log('Sharing document:', doc.name || doc.title)
       // Implement share functionality
     },
     
     downloadDocument(doc) {
-      console.log('Downloading document:', doc.name)
+      console.log('Downloading document:', doc.name || doc.title)
       // Implement download functionality
     },
     
-    deleteDocument(doc) {
-      if (confirm(`Are you sure you want to delete "${doc.name}"?`)) {
-        const index = this.documents.findIndex(d => d.id === doc.id)
-        if (index > -1) {
-          this.documents.splice(index, 1)
+    async deleteDocument(doc) {
+      const docName = doc.name || doc.title || 'this document'
+      if (confirm(`Are you sure you want to delete "${docName}"?`)) {
+        try {
+          const clerk = this.$clerk
+          if (!clerk) {
+            throw new Error('Clerk is not initialized')
+          }
+
+          await clerk.load()
+          await documentService.deleteDocument(doc.id, clerk)
+          
+          // Remove from local array
+          const index = this.documents.findIndex(d => d.id === doc.id)
+          if (index > -1) {
+            this.documents.splice(index, 1)
+          }
+          
+          console.log('✅ Document deleted successfully')
+        } catch (error) {
+          console.error('❌ Error deleting document:', error)
+          alert(`Failed to delete document: ${error.message}`)
         }
       }
     }
@@ -808,8 +857,19 @@ export default {
   font-size: 18px;
   font-weight: 700;
   color: #0f172a;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-description {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 12px;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -869,6 +929,48 @@ export default {
   flex-direction: column;
   justify-content: center;
   gap: 12px;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  padding: 60px 20px;
+}
+
+.loading-text {
+  margin-top: 24px;
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.error-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.error-message {
+  font-size: 16px;
+  color: #64748b;
+  margin-bottom: 24px;
+  max-width: 500px;
 }
 
 /* Empty State */
